@@ -35,6 +35,6 @@ That's it. No policy file stack. No pre-read checklist.
 
 ## Sync
 
-- MacBook: `/Users/domininclynch/Desktop/Business/OpenTrident`
+- MacBook: `/Users/domininclynch/Desktop/OpenTrident`
 - GitHub: `https://github.com/DomLynch/OpenTrident`
 - VPS: `/opt/OpenTrident`
