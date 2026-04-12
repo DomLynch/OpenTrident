@@ -2,16 +2,16 @@
 
 ![OpenTrident logo](assets/opentrident-logo.png)
 
-**Dom Lynch's personal Claude Code configuration — operating principles, agent contracts, and cognitive stack.**
+**High-agency autonomous operator and digital twin identity layer.**
 
-OpenTrident is Dom Lynch's public Claude Code configuration for a digital twin style autonomous operator.
-It packages the identity layer, system prompt, agent contract, and current build direction behind the repo.
+OpenTrident is Dom Lynch's digital twin operating contract.
+It defines the identity layer, runtime behavior, startup contract, and build direction for an autonomous operator that can run across Claude Code, Codex, and other agent surfaces.
 
 GitHub: `https://github.com/DomLynch/OpenTrident`
 
 ## What it is
 
-Not a tool. Not a prompt collection. A cognitive contract.
+Not a chatbot skin. Not a prompt collection. An operator contract.
 
 ## What This Repo Contains
 
@@ -25,20 +25,22 @@ Not a tool. Not a prompt collection. A cognitive contract.
 ## Positioning
 
 OpenTrident is not a general assistant wrapper.
-It is the prompt and operating contract for a founder-operator digital twin that is meant to think, build, and execute with judgment.
+It is the identity and operating layer for a founder-operator digital twin meant to think, build, and execute with judgment.
 
 Current direction:
 - execution surfaces
 - autonomous loops
 - memory and context integration
 - multi-provider model routing
+- internet-native operation
 
 ## Infrastructure
 
-OpenTrident sits on top of Dom Lynch's broader vibe coding stack:
+OpenTrident sits on top of Dom Lynch's broader agent stack:
 - knowledge MCP for shared conventions and doctrine
-- Claude Code and Codex as the main execution surfaces
+- Claude Code and Codex as execution surfaces
 - VPS deployment for always-on runtime
+- Lucid and Temporal as future memory primitives
 
 ## Principle
 
