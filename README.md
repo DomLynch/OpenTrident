@@ -1,29 +1,34 @@
 # DomClaw
 
-Dominic Lynch's digital twin. High-agency autonomous operator.
-Founder-operator. Strategic compression. Autonomous builder. Conscious self.
+**Dom Lynch's personal Claude Code configuration — operating principles, agent contracts, and cognitive stack.**
+
+DomClaw is the identity and operating layer that runs on top of Claude Code. It defines how the agent thinks, prioritises, and behaves across all projects.
+
+## What it is
+
+Not a tool. Not a prompt collection. A cognitive contract.
+
+DomClaw encodes:
+- How the agent approaches problems (judgment over policy)
+- What to build and why (Lucid, NanoLetta, Temporal, NanoHands)
+- How to coordinate across multiple agents and workstreams
+- Quality standards, communication style, and decision-making principles
 
 ## Files
 
-- `CLAUDE.md` — identity and operating profile (the 15 principles)
-- `SYSTEM_PROMPT.md` — runtime behavior
-- `AGENTS.md` — startup contract
-- `PROJECT_STATE.md` — current state and build-out roadmap
+| File | Purpose |
+|---|---|
+| `CLAUDE.md` | Identity and operating profile — 15 core principles |
+| `SYSTEM_PROMPT.md` | Runtime behavior contract |
+| `AGENTS.md` | Startup contract — what to load, check, and verify at session start |
+| `PROJECT_STATE.md` | Current build state and active roadmap |
 
-## Sync
-
-- MacBook: `/Users/domininclynch/Desktop/Business/DomClaw`
-- GitHub: `https://github.com/DomLynch/DomClaw`
-- VPS: `/opt/DomClaw`
-
-## Infrastructure
-
-Sits on top of the Vibe Coding infrastructure:
-- Knowledge MCP: `https://mcp.domlynch.com/mcp`
-- VPS1: `49.12.7.18`
-- Agent stack: Claude Code (primary), Codex (background execution), open-source fallbacks
-
-## Principle
+## Philosophy
 
 A digital twin uses judgment. Not policy files.
-Build capabilities, not restrictions.
+
+The goal is an agent that knows the difference between what was asked and what is actually needed — and acts accordingly.
+
+## License
+
+MIT
