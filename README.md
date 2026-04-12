@@ -17,6 +17,9 @@ DomClaw is the operating profile and repo for Dominic Lynch's founder-operator A
 - `TOOLS_POLICY.md`: tool stack boundaries
 - `MEMORY_POLICY.md`: memory rules
 - `CHANNEL_POLICY.md`: Telegram/operator communication rules
+- `FINANCE_POLICY.md`: finance read-only vs execution boundaries
+- `SOCIAL_POLICY.md`: social drafting vs publishing boundaries
+- `DEPLOYMENT_POLICY.md`: staging vs production deployment boundaries
 - `PROJECT_STATE.md`: current objective and next steps
 - `VIBE_CODING_ARCHITECTURE_SETUP.md`: historical handover brief, reference-only
 - `LICENSE`: Functional Source License 1.1 with MIT future license

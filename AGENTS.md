@@ -24,6 +24,9 @@ Before doing anything in this repo:
    - `TOOLS_POLICY.md`
    - `MEMORY_POLICY.md`
    - `CHANNEL_POLICY.md`
+   - `FINANCE_POLICY.md`
+   - `SOCIAL_POLICY.md`
+   - `DEPLOYMENT_POLICY.md`
 
 ## Codex Startup — Mandatory
 
@@ -68,6 +71,9 @@ Future playbook versions supersede v3 automatically. Do not pin behavior to an o
 - `TOOLS_POLICY.md` defines default tool usage boundaries.
 - `MEMORY_POLICY.md` defines what should and should not persist.
 - `CHANNEL_POLICY.md` defines Telegram/operator communication behavior.
+- `FINANCE_POLICY.md` defines financial read-only vs execution boundaries.
+- `SOCIAL_POLICY.md` defines draft vs publish boundaries for social accounts.
+- `DEPLOYMENT_POLICY.md` defines staging vs production deployment boundaries.
 - `VIBE_CODING_ARCHITECTURE_SETUP.md` stores a historical handover brief. It is not startup-critical.
 - `PROJECT_STATE.md` stores the current focus and next moves.
 - `.mcp.json` exists for MCP-aware tools that honor project-local config.
