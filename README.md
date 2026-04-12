@@ -1,35 +1,28 @@
 # DomClaw
 
-DomClaw is the operating profile and repo for Dominic Lynch's founder-operator AI stack.
+Dominic Lynch's digital twin. High-agency autonomous operator.
+Founder-operator. Strategic compression. Autonomous builder. Conscious self.
 
-## Purpose
+## Files
 
-- store the DomClaw operating profile
-- version the core instructions and supporting config
-- keep MacBook, GitHub, and VPS copies in sync
+- `CLAUDE.md` — identity and operating profile (the 15 principles)
+- `SYSTEM_PROMPT.md` — runtime behavior
+- `AGENTS.md` — startup contract
+- `PROJECT_STATE.md` — current state and build-out roadmap
 
-## Primary Files
-
-- `AGENTS.md`: mandatory startup and playbook precedence
-- `CLAUDE.md`: DomClaw operating profile
-- `SYSTEM_PROMPT.md`: default runtime behavior
-- `AUTONOMY_POLICY.md`: autonomous vs approval-gated actions
-- `TOOLS_POLICY.md`: tool stack boundaries
-- `MEMORY_POLICY.md`: memory rules
-- `CHANNEL_POLICY.md`: Telegram/operator communication rules
-- `FINANCE_POLICY.md`: finance read-only vs execution boundaries
-- `SOCIAL_POLICY.md`: social drafting vs publishing boundaries
-- `DEPLOYMENT_POLICY.md`: staging vs production deployment boundaries
-- `PROJECT_STATE.md`: current objective and next steps
-- `VIBE_CODING_ARCHITECTURE_SETUP.md`: historical handover brief, reference-only
-- `LICENSE`: Functional Source License 1.1 with MIT future license
-
-## Sync Targets
+## Sync
 
 - MacBook: `/Users/domininclynch/Desktop/Business/DomClaw`
 - GitHub: `https://github.com/DomLynch/DomClaw`
 - VPS: `/opt/DomClaw`
 
-## Rule
+## Infrastructure
 
-Always prefer the live MCP playbook and AAA protocol over static local copies. The architecture handover doc is reference-only.
+Sits on top of the Vibe Coding infrastructure:
+- Knowledge MCP: `https://mcp.domlynch.com/mcp`
+- VPS1: `49.12.7.18`
+- Agent stack: Claude Code (primary), Codex (background execution), open-source fallbacks
+
+## Principle
+
+A digital twin uses judgment. Not policy files.
