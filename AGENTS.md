@@ -18,6 +18,12 @@ Before doing anything in this repo:
    - call `get_aaa_protocol()`
 5. Treat the live MCP playbook as authoritative over any static local copy.
 6. Do not read `VIBE_CODING_ARCHITECTURE_SETUP.md` by default. Use it only when historical infrastructure context is relevant.
+7. Read behavior-layer files as relevant:
+   - `SYSTEM_PROMPT.md`
+   - `AUTONOMY_POLICY.md`
+   - `TOOLS_POLICY.md`
+   - `MEMORY_POLICY.md`
+   - `CHANNEL_POLICY.md`
 
 ## Codex Startup — Mandatory
 
@@ -57,6 +63,11 @@ Future playbook versions supersede v3 automatically. Do not pin behavior to an o
 ## Repo Scope
 
 - `CLAUDE.md` stores the DomClaw operating profile.
+- `SYSTEM_PROMPT.md` stores the default DomClaw runtime behavior.
+- `AUTONOMY_POLICY.md` defines autonomous vs approval-gated actions.
+- `TOOLS_POLICY.md` defines default tool usage boundaries.
+- `MEMORY_POLICY.md` defines what should and should not persist.
+- `CHANNEL_POLICY.md` defines Telegram/operator communication behavior.
 - `VIBE_CODING_ARCHITECTURE_SETUP.md` stores a historical handover brief. It is not startup-critical.
 - `PROJECT_STATE.md` stores the current focus and next moves.
 - `.mcp.json` exists for MCP-aware tools that honor project-local config.

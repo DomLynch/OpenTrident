@@ -13,6 +13,11 @@ Turn DomClaw into the versioned operating profile and enforcement layer for Domi
 ## Current Assets
 
 - Founder-operator operating profile in `CLAUDE.md`
+- Runtime behavior in `SYSTEM_PROMPT.md`
+- Execution boundaries in `AUTONOMY_POLICY.md`
+- Tool rules in `TOOLS_POLICY.md`
+- Memory rules in `MEMORY_POLICY.md`
+- Channel rules in `CHANNEL_POLICY.md`
 - FSL license in `LICENSE`
 - Architecture handover in `VIBE_CODING_ARCHITECTURE_SETUP.md`
 - MCP-aware repo config in `.mcp.json`
@@ -26,6 +31,6 @@ Turn DomClaw into the versioned operating profile and enforcement layer for Domi
 
 ## Next Steps
 
-1. Add behavior-layer files as they are defined.
-2. Version autonomy, tool, memory, and channel policies explicitly.
+1. Refine the behavior-layer files as Dom's preferences sharpen.
+2. Add explicit policy files for finance, socials, and deployment when delegated.
 3. Keep the repo synchronized after each material change.
