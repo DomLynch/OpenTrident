@@ -26,3 +26,4 @@ Sits on top of the Vibe Coding infrastructure:
 ## Principle
 
 A digital twin uses judgment. Not policy files.
+Build capabilities, not restrictions.

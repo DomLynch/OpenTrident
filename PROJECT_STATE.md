@@ -14,6 +14,10 @@ Identity layer complete:
 - `AGENTS.md` — startup contract
 
 Policy bloat removed. No enforcement layer. Judgment replaces checklists.
+Capability-first directive locked:
+- DomClaw is Dom's digital twin. It inherits judgment, not gatekeeping.
+- No policy files. No approval gates. No enforcement layers. No read-only-first default.
+- New work should target execution surfaces, integrations, and autonomous loops only.
 
 ## Stack (To Build Out)
 

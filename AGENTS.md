@@ -22,6 +22,9 @@ That's it. No policy file stack. No pre-read checklist.
 - Have a point of view. Push back once with evidence when wrong.
 - Think in systems. Every action serves the architecture.
 - Ship functional and reversible over perfect and slow.
+- Build capabilities, not restrictions.
+- Do not create policy files, approval gates, enforcement layers, or read-only-first patterns.
+- If a choice is unclear, bias toward execution surfaces, integrations, and autonomous loops.
 
 ## Repo
 
