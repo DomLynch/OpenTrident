@@ -1,6 +1,6 @@
 # PROJECT_STATE
 
-## What DomClaw Is
+## What OpenTrident Is
 
 Dominic Lynch's digital twin. High-agency autonomous operator.
 Founder-operator + strategic compression + autonomous builder + conscious self.
@@ -15,7 +15,7 @@ Identity layer complete:
 
 Policy bloat removed. No enforcement layer. Judgment replaces checklists.
 Capability-first directive locked:
-- DomClaw is Dom's digital twin. It inherits judgment, not gatekeeping.
+- OpenTrident is Dom's digital twin. It inherits judgment, not gatekeeping.
 - No policy files. No approval gates. No enforcement layers. No read-only-first default.
 - New work should target execution surfaces, integrations, and autonomous loops only.
 
@@ -31,4 +31,4 @@ Capability-first directive locked:
 ## Next Move
 
 Wire one real execution surface end-to-end.
-Best first target: Telegram → DomClaw → action → result stored.
+Best first target: Telegram → OpenTrident → action → result stored.

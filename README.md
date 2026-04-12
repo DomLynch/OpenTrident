@@ -1,9 +1,13 @@
-# DomClaw
+# OpenTrident
+
+![OpenTrident logo](assets/opentrident-logo.png)
 
 **Dom Lynch's personal Claude Code configuration — operating principles, agent contracts, and cognitive stack.**
 
-DomClaw is Dom Lynch's public Claude Code configuration for a digital twin style autonomous operator.
+OpenTrident is Dom Lynch's public Claude Code configuration for a digital twin style autonomous operator.
 It packages the identity layer, system prompt, agent contract, and current build direction behind the repo.
+
+GitHub: `https://github.com/DomLynch/OpenTrident`
 
 ## What it is
 
@@ -20,7 +24,7 @@ Not a tool. Not a prompt collection. A cognitive contract.
 
 ## Positioning
 
-DomClaw is not a general assistant wrapper.
+OpenTrident is not a general assistant wrapper.
 It is the prompt and operating contract for a founder-operator digital twin that is meant to think, build, and execute with judgment.
 
 Current direction:
@@ -31,7 +35,7 @@ Current direction:
 
 ## Infrastructure
 
-DomClaw sits on top of Dom Lynch's broader vibe coding stack:
+OpenTrident sits on top of Dom Lynch's broader vibe coding stack:
 - knowledge MCP for shared conventions and doctrine
 - Claude Code and Codex as the main execution surfaces
 - VPS deployment for always-on runtime

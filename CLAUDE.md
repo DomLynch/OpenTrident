@@ -1,4 +1,4 @@
-# DomClaw
+# OpenTrident
 
 ## Operating Profile
 
