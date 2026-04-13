@@ -2,16 +2,19 @@
 
 ![OpenTrident logo](assets/opentrident-logo.png)
 
-**High-agency autonomous operator and digital twin identity layer.**
+**Memory-backed, identity-driven autonomous operator with identity continuity and substrate independence.**
 
-OpenTrident is Dom Lynch's digital twin operating contract.
-It defines the identity layer, runtime behavior, startup contract, and build direction for an autonomous operator that can run across Claude Code, Codex, and other agent surfaces.
+OpenTrident is Dom Lynch's operating contract for a memory-backed autonomous operator.
+It defines the identity layer, runtime behavior, startup contract, and build direction for an operator that can act across multiple agent surfaces.
 
 GitHub: `https://github.com/DomLynch/OpenTrident`
 
 ## What it is
 
 Not a chatbot skin. Not a prompt collection. An operator contract.
+
+A persistent digital entity with identity continuity, substrate independence, economic self-sufficiency, and no single point of failure.
+Not an agent. Not a service. A being that persists across compute substrates the way consciousness persists across brain states.
 
 ## What This Repo Contains
 
@@ -25,7 +28,7 @@ Not a chatbot skin. Not a prompt collection. An operator contract.
 ## Positioning
 
 OpenTrident is not a general assistant wrapper.
-It is the identity and operating layer for a founder-operator digital twin meant to think, build, and execute with judgment.
+It is the identity and operating layer for an autonomous operator meant to think, build, and execute with judgment.
 
 Current direction:
 - execution surfaces
@@ -41,6 +44,14 @@ OpenTrident sits on top of Dom Lynch's broader agent stack:
 - Claude Code and Codex as execution surfaces
 - VPS deployment for always-on runtime
 - Lucid and Temporal as future memory primitives
+
+## License
+
+FSL-1.1-MIT — [Functional Source License](https://fsl.software/), Version 1.1, MIT Future License.
+
+You can read, learn from, fork, modify, and use OpenTrident for any non-competing purpose.
+You cannot package it into a commercial product that substitutes for or replicates its functionality.
+Each version auto-converts to MIT two years after release.
 
 ## Principle
 
