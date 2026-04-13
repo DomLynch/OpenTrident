@@ -32,6 +32,7 @@ It is the identity and operating layer for an autonomous operator meant to think
 
 Current direction:
 - execution surfaces
+- planner-orchestrator layer
 - autonomous loops
 - memory and context integration
 - multi-provider model routing
@@ -43,7 +44,35 @@ OpenTrident sits on top of Dom Lynch's broader agent stack:
 - knowledge MCP for shared conventions and doctrine
 - Claude Code and Codex as execution surfaces
 - VPS deployment for always-on runtime
-- Lucid and Temporal as future memory primitives
+- Brain as the memory substrate
+- Lucid and Temporal as live long-term memory primitives
+- OpenTrident runtime as the live execution engine
+
+## Current Build Focus
+
+OpenTrident is past the identity-only stage.
+
+Live now:
+- memory-backed runtime
+- Telegram surface
+- MiniMax primary with GLM fallback
+- attention v2
+- Gmail attention v1
+- repo attention v1
+- GitHub attention v1
+- planner-orchestrator v1
+- goal origination v1
+
+Next:
+- richer bounded worker spawning
+- market/news signal inbox
+- recovery/escalation hardening
+- autonomous task loop v1
+
+See:
+- `PROJECT_STATE.md`
+- `PLANNER_ORCHESTRATOR_SPEC.md`
+- `UPSTREAM_EXTRACTIONS.md`
 
 ## License
 
