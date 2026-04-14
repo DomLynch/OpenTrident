@@ -1,10 +1,11 @@
 import type { SessionEntry } from "../config/sessions/types.js";
 import type { SystemEvent } from "../infra/system-events.js";
-import { getAutonomyLevel, requiresConfirmation } from "./autonomy-ladder.js";
+import { getAutonomyLevel, getDomainAutonomyConfig, requiresConfirmation } from "./autonomy-ladder.js";
 import { originatePlannerGoal } from "./goal-origination.js";
 import { buildPlannerInbox } from "./planner-inbox.js";
 import { getTrustMetrics } from "./trust-telemetry.js";
-import type { PlannerDecision, PlannerItem } from "./types.js";
+import { sanitizeEvidence, validateActionClass, validatePlannerDomain } from "./planner-security.js";
+import type { PlannerDecision, PlannerDecisionMode, PlannerItem } from "./types.js";
 
 const SPAWNABLE_ACTION_CLASSES = new Set([
   "spawn_readonly",
@@ -63,7 +64,7 @@ function buildPromptBlock(params: {
     "- blast radius rule: draft_reply and send_reply require surfacing for confirmation. No autonomous sends, pushes, writes, merges, trades, or irreversible actions.",
   );
 
-  for (const evidence of decision.topItem.evidence.slice(0, 3)) {
+  for (const evidence of sanitizeEvidence(decision.topItem.evidence).slice(0, 3)) {
     lines.push(`  evidence: ${trimEvidence(evidence)}`);
   }
 
@@ -99,13 +100,37 @@ function buildPromptBlock(params: {
 
 function selectTopPlannerCandidate(candidates: readonly PlannerItem[]): PlannerItem | undefined {
   const topItem = candidates[0];
-  if (!topItem) {
-    return undefined;
-  }
-  if (topItem.id !== "pending_signals") {
-    return topItem;
-  }
+  if (!topItem) return undefined;
+  if (topItem.id !== "pending_signals") return topItem;
   return candidates.find((item) => item.id !== "pending_signals" && item.score >= 0.4) ?? topItem;
+}
+
+function resolveMode(params: {
+  goalActionClass: string;
+  score: number;
+  autonomyLevel: string;
+  needsConfirmation: boolean;
+}): PlannerDecisionMode {
+  const { goalActionClass, score, autonomyLevel, needsConfirmation } = params;
+
+  if (score < 0.33) return "idle";
+
+  if (autonomyLevel === "read_only" && goalActionClass !== "spawn_readonly") {
+    return "surface";
+  }
+
+  if (goalActionClass === "send_reply") {
+    if (score >= 0.7 && !needsConfirmation) return "spawn_readonly";
+    if (score >= 0.55) return "send";
+    return "surface";
+  }
+
+  if (SPAWNABLE_ACTION_CLASSES.has(goalActionClass)) {
+    if (score >= 0.7 && !needsConfirmation) return "spawn_readonly";
+    if (score >= 0.55) return "spawn_readonly";
+  }
+
+  return "surface";
 }
 
 type PlannerSessionEntry = Pick<
@@ -124,19 +149,31 @@ export function resolvePlannerDecision(params: {
     return { mode: "idle", candidates };
   }
   const goal = originatePlannerGoal(topItem);
-  let mode: "idle" | "surface" | "spawn_readonly" | "send" = "surface";
-  const _autonomyLevel = getAutonomyLevel(topItem.domain);
-  const needsConfirmation = requiresConfirmation(topItem.domain, goal.actionClass);
+  const sanitizedItem: PlannerItem = {
+    ...topItem,
+    evidence: sanitizeEvidence(topItem.evidence),
+  };
+  const safeDomain = validatePlannerDomain(goal.domain) ? goal.domain : sanitizedItem.domain;
+  const safeActionClass = validateActionClass(goal.actionClass) ? goal.actionClass : "surface_only";
+  const safeGoal = {
+    ...goal,
+    domain: safeDomain,
+    actionClass: safeActionClass,
+  };
+  const autonomyConfig = getDomainAutonomyConfig();
+  const autonomyLevel = getAutonomyLevel(safeGoal.domain, autonomyConfig);
+  const needsConfirmation = requiresConfirmation(safeGoal.domain, safeGoal.actionClass, autonomyConfig);
+  const mode = resolveMode({
+    goalActionClass: safeGoal.actionClass,
+    score: sanitizedItem.score,
+    autonomyLevel,
+    needsConfirmation,
+  });
 
-  if (goal.actionClass === "send_reply" && topItem.score >= 0.55) {
-    mode = needsConfirmation ? "send" : "spawn_readonly";
-  } else if (SPAWNABLE_ACTION_CLASSES.has(goal.actionClass) && topItem.score >= 0.55) {
-    mode = needsConfirmation ? "spawn_readonly" : "spawn_readonly";
-  }
   const decision: PlannerDecision = {
     mode,
-    topItem,
-    goal,
+    topItem: sanitizedItem,
+    goal: safeGoal,
     candidates,
   };
   decision.promptBlock = buildPromptBlock({
