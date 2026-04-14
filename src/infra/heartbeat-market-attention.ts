@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { resolveStateDir } from "../config/paths.js";
+import { loadWatchlist, scoreWithWatchlist, type WatchlistEntry } from "../config/market-watchlist.js";
 import type { SystemEvent } from "./system-events.js";
 
 const MARKET_SIGNAL_CACHE_FILE = "market-attention-v1.json";
@@ -86,40 +87,10 @@ async function saveMarketCache(statePath: string, cache: MarketCache): Promise<v
   await fs.writeFile(statePath, JSON.stringify(cache, null, 2), "utf8");
 }
 
-function scoreMarketSignal(text: string): number {
-  const lower = text.toLowerCase();
-  const highImpact = [
-    "btc", "bitcoin", "eth", "ethereum", "fed", "rate", "inflation", "crash", "surge",
-    "all-time", " ath ", "sec", "etf", "halving", "blackrock", "spot",
-    "solana", "bnb", "ripple", "xrp", "cardano", "dogecoin", "polkadot", "avalanche",
-    "chainlink", "defi", "yield", "liquid", "stake", "bridge", "rollup", "layer 2",
-    "l2", "ordinal", "runes", "meme", "altcoin",
-  ];
-  const mediumImpact = [
-    "crypto", "market", "trading", "price", "volatile", "wall street", "regulation",
-    "adoption", "institutional", "exchange", "binance", "coinbase", "Kraken", "okx",
-    "macro", "economy", "inflation", "treasury", "bond", "stock", "nasdaq", "sp500",
-  ];
-
-  let score = 0.3;
-  for (const term of highImpact) {
-    if (lower.includes(term)) {
-      score = Math.max(score, 0.7);
-      break;
-    }
-  }
-  if (score < 0.7) {
-    for (const term of mediumImpact) {
-      if (lower.includes(term)) {
-        score = Math.max(score, 0.5);
-        break;
-      }
-    }
-  }
-  return Math.min(1, score);
-}
-
-function parseMarketSignals(rawSignals: Array<{ text: string; source: MarketSignal["source"] }>): MarketSignal[] {
+function parseMarketSignals(
+  rawSignals: Array<{ text: string; source: MarketSignal["source"] }>,
+  watchlist: WatchlistEntry[],
+): MarketSignal[] {
   return rawSignals
     .slice(0, MAX_SIGNALS)
     .map(({ text, source }) => {
@@ -128,7 +99,7 @@ function parseMarketSignals(rawSignals: Array<{ text: string; source: MarketSign
         fingerprint: buildFingerprint(key),
         key,
         text: compactWhitespace(text),
-        score: scoreMarketSignal(text),
+        score: scoreWithWatchlist(text, watchlist),
         source,
       };
     })
@@ -173,7 +144,7 @@ async function fetchCoinGeckoPrices(): Promise<string[]> {
   return signals;
 }
 
-async function fetchHackerNews(): Promise<string[]> {
+async function fetchHackerNews(watchlist: WatchlistEntry[]): Promise<string[]> {
   const signals: string[] = [];
   try {
     const response = await fetchWithTimeout(HN_ALGOLIA_SEARCH_URL, 8000);
@@ -187,7 +158,7 @@ async function fetchHackerNews(): Promise<string[]> {
       const url = hit.url ?? "";
       if (!title) continue;
       if (
-        scoreMarketSignal(title) >= 0.3 ||
+        scoreWithWatchlist(title, watchlist) >= 0.3 ||
         /(bitcoin|ethereum|crypto|defi|token|trading|chain|blockchain|nft|web3)/i.test(
           title + " " + url,
         )
@@ -201,7 +172,7 @@ async function fetchHackerNews(): Promise<string[]> {
   return signals;
 }
 
-async function fetchRSSFeed(feedUrl: string): Promise<string[]> {
+async function fetchRSSFeed(feedUrl: string, watchlist: WatchlistEntry[]): Promise<string[]> {
   const signals: string[] = [];
   try {
     const response = await fetchWithTimeout(feedUrl, 10000);
@@ -213,7 +184,7 @@ async function fetchRSSFeed(feedUrl: string): Promise<string[]> {
         s.length > 20 &&
         s.length < 300 &&
         (/(bitcoin|ethereum|crypto|market|trading|defi|token|chain)/i.test(s) ||
-          scoreMarketSignal(s) >= 0.4),
+          scoreWithWatchlist(s, watchlist) >= 0.4),
     );
     signals.push(...items.slice(0, 5).map((s) => `[RSS] ${s.trim()}`));
   } catch {
@@ -246,7 +217,10 @@ export async function collectHeartbeatMarketEvents(params?: {
   const stateDir = params?.stateDir ?? resolveStateDir();
   const statePath = path.join(stateDir, MARKET_SIGNAL_CACHE_FILE);
 
-  const cache = await loadMarketCache(statePath);
+  const [cache, watchlistConfig] = await Promise.all([
+    loadMarketCache(statePath),
+    loadWatchlist(stateDir),
+  ]);
 
   if (
     cache.circuitOpenedAtMs > 0 &&
@@ -273,9 +247,9 @@ export async function collectHeartbeatMarketEvents(params?: {
 
   if (needsFullFetch) {
     const [hnSignals, newsSignals, ...rssResults] = await Promise.all([
-      fetchHackerNews(),
+      fetchHackerNews(watchlistConfig.entries),
       fetchCryptoNews(),
-      ...DEFAULT_RSS_FEEDS.map((url) => fetchRSSFeed(url)),
+      ...DEFAULT_RSS_FEEDS.map((url) => fetchRSSFeed(url, watchlistConfig.entries)),
     ]);
 
     rawSignals.push(...hnSignals.map((t) => ({ text: t, source: "hackernews" as const })));
@@ -305,7 +279,7 @@ export async function collectHeartbeatMarketEvents(params?: {
     return events;
   }
 
-  const newSignals = parseMarketSignals(rawSignals);
+  const newSignals = parseMarketSignals(rawSignals, watchlistConfig.entries);
 
   const mergedSignals = [...newSignals];
   for (const existing of cache.signals) {
@@ -355,8 +329,10 @@ export async function collectHeartbeatMarketEvents(params?: {
 
 export function parseMarketSignalsForTest(
   rawSignals: string[],
+  watchlist?: WatchlistEntry[],
 ): MarketSignal[] {
-  return parseMarketSignals(rawSignals.map((text) => ({ text, source: "news" as const })));
+  return parseMarketSignals(
+    rawSignals.map((text) => ({ text, source: "news" as const })),
+    watchlist ?? [],
+  );
 }
-
-export { scoreMarketSignal };
