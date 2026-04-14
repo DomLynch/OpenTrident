@@ -35,7 +35,7 @@ async function buildPromptBlock(params: {
   if (!decision.goal || !decision.topItem) {
     return undefined;
   }
-  const isSpawnedWorker = decision.mode === "spawn_readonly" || decision.mode === "send";
+  const isSpawnedWorker = decision.mode !== "idle" && decision.mode !== "surface";
   const lines = [
     "Planner view:",
     `- top attention: ${decision.topItem.id} | score=${decision.topItem.score.toFixed(2)} | ${decision.topItem.summary}`,
@@ -44,20 +44,25 @@ async function buildPromptBlock(params: {
     `- recommended action class: ${decision.goal.actionClass}`,
   ];
 
-  if (isSpawnedWorker) {
-    lines.push("- This goal will spawn a bounded worker to produce a result.");
-    lines.push("- When surfacing the result, use this format:");
-    lines.push("  ## Result: [Goal Title]");
-    lines.push("  ### Signal");
-    lines.push("  [What triggered this attention]");
-    lines.push("  ### Analysis");
-    lines.push("  [What the worker found/reasoned]");
-    lines.push("  ### Recommendation");
-    lines.push("  [Proposed next step]");
-    if (decision.mode === "send") {
-      lines.push("  ### Action Required");
-      lines.push("  [Dom must approve/confirm before any send occurs]");
-    }
+  if (decision.mode === "spawn_readonly") {
+    lines.push("- This goal spawns a bounded read-only worker to investigate and surface findings.");
+    lines.push("- No confirmation needed — surface the result directly when the worker completes.");
+  } else if (decision.mode === "draft_reply") {
+    lines.push("- This goal spawns a bounded worker to draft a message.");
+    lines.push("- Result will be surfaced for Dom's review before any send occurs.");
+    lines.push("- When surfacing, use: ## Draft for Review + the draft + approve/reject instructions.");
+  } else if (decision.mode === "draft_issue") {
+    lines.push("- This goal spawns a bounded worker to draft a GitHub issue.");
+    lines.push("- Result will be surfaced for Dom's review before the issue is created.");
+    lines.push("- When surfacing, use: ## Issue Draft + the draft + approve/reject instructions.");
+  } else if (decision.mode === "brief") {
+    lines.push("- This goal spawns a bounded analyst worker to produce a structured brief.");
+    lines.push("- Brief is surfaced directly — no confirmation needed.");
+    lines.push("- When surfacing, use: ## Brief + Situation + Analysis + Recommendations.");
+  } else if (decision.mode === "send") {
+    lines.push("- This goal spawns a bounded worker to draft a send action.");
+    lines.push("- DOM MUST APPROVE before any send occurs — this is irreversible.");
+    lines.push("- When surfacing, use: ## Action Required + what will be sent + approve/reject.");
   }
 
   lines.push(
@@ -120,14 +125,32 @@ function resolveMode(params: {
   }
 
   if (goalActionClass === "send_reply") {
-    if (score >= 0.7 && !needsConfirmation) return "spawn_readonly";
     if (score >= 0.55) return "send";
     return "surface";
   }
 
-  if (SPAWNABLE_ACTION_CLASSES.has(goalActionClass)) {
-    if (score >= 0.7 && !needsConfirmation) return "spawn_readonly";
+  if (goalActionClass === "surface_only") {
+    return "surface";
+  }
+
+  if (goalActionClass === "spawn_readonly") {
     if (score >= 0.55) return "spawn_readonly";
+    return "surface";
+  }
+
+  if (goalActionClass === "draft_reply") {
+    if (score >= 0.55) return "draft_reply";
+    return "surface";
+  }
+
+  if (goalActionClass === "draft_issue") {
+    if (score >= 0.55) return "draft_issue";
+    return "surface";
+  }
+
+  if (goalActionClass === "brief") {
+    if (score >= 0.5) return "brief";
+    return "surface";
   }
 
   return "surface";

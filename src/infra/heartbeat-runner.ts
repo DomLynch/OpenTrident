@@ -49,6 +49,7 @@ import { resolvePlannerRecoveryActions } from "../planner/planner-recovery.js";
 import { spawnPlannerReadonlyTask } from "../planner/planner-spawn.js";
 import { readPlannerRows, recordPlannerDecision, updatePlannerRow } from "../planner/planner-state.js";
 import { buildMemoryContext } from "../planner/planner-memory.js";
+import { processWorkerResults } from "../planner/planner-result-handler.js";
 import { isSpawnRateLimited } from "../planner/planner-security.js";
 import { getQueueSize } from "../process/command-queue.js";
 import { CommandLane } from "../process/lanes.js";
@@ -880,6 +881,26 @@ export async function runHeartbeatOnce(opts: {
     return { status: "skipped", reason: "no-tasks-due" };
   }
   const plannerRows = await readPlannerRows({ sessionKey });
+  const completedResults = await processWorkerResults({
+    rows: plannerRows,
+    sessionKey,
+    nowMs: startedAt,
+  });
+  for (const result of completedResults) {
+    if (result.newStatus === "done") {
+      prompt += `
+
+Planner result complete:
+${result.draftResult?.slice(0, 800) ?? "(no output)"}`;
+    } else if (result.newStatus === "awaiting_confirmation") {
+      prompt += `
+
+Draft ready for review:
+${result.draftResult?.slice(0, 600) ?? "(no output)"}
+
+Reply with approve/reject or edit your version to confirm.`;
+    }
+  }
   const spawnRateLimited = isSpawnRateLimited(plannerRows, startedAt);
   let plannerRow =
     plannerDecision && plannerDecision.mode !== "idle"
@@ -1032,6 +1053,133 @@ Planner worker:
             status: "blocked",
             note: spawnResult.note,
           },
+        })) ?? plannerRow;
+      prompt += `
+
+Planner worker:
+- spawn attempt failed: ${spawnResult.error}
+- keep the next step low-blast-radius and do not assume a worker is running`;
+    }
+  }
+
+  if ((plannerDecision?.mode === "draft_reply" || plannerDecision?.mode === "draft_issue") && plannerRow && !spawnRateLimited) {
+    const spawnResult = await spawnPlannerReadonlyTask({
+      cfg,
+      agentId,
+      sessionKey,
+      nowMs: startedAt,
+      decision: plannerDecision,
+      existingRows: plannerRows,
+      currentRowId: plannerRow.id,
+      entry,
+    });
+    if (spawnResult.status === "accepted") {
+      plannerRow =
+        (await updatePlannerRow({
+          sessionKey,
+          rowId: plannerRow.id,
+          nowMs: startedAt,
+          patch: {
+            status: "awaiting_confirmation",
+            childSessionKey: spawnResult.childSessionKey,
+            runId: spawnResult.runId,
+            note: spawnResult.note,
+          },
+        })) ?? plannerRow;
+      const actionLabel = plannerDecision.mode === "draft_reply" ? "draft reply" : "draft issue";
+      prompt += `
+
+Planner worker:
+- spawned worker to produce ${actionLabel} for Dom's review
+- child session: ${spawnResult.childSessionKey ?? "unknown"}
+- draft will be surfaced for confirmation before any action is taken
+- do not spawn another worker for the same goal unless this one fails or stalls`;
+    } else if (spawnResult.status === "skipped") {
+      const status = spawnResult.reason === "existing-active-spawn" ? "dropped" : "blocked";
+      plannerRow =
+        (await updatePlannerRow({
+          sessionKey,
+          rowId: plannerRow.id,
+          nowMs: startedAt,
+          patch: { status, note: spawnResult.note },
+        })) ?? plannerRow;
+      if (spawnResult.reason === "existing-active-spawn") {
+        prompt += `
+
+Planner worker:
+- a worker is already active for this ${actionLabel} goal
+- do not spawn another worker unless the current one fails or stalls`;
+      }
+    } else {
+      plannerRow =
+        (await updatePlannerRow({
+          sessionKey,
+          rowId: plannerRow.id,
+          nowMs: startedAt,
+          patch: { status: "blocked", note: spawnResult.note },
+        })) ?? plannerRow;
+      prompt += `
+
+Planner worker:
+- spawn attempt failed: ${spawnResult.error}
+- keep the next step low-blast-radius and do not assume a worker is running`;
+    }
+  }
+
+  if (plannerDecision?.mode === "brief" && plannerRow && !spawnRateLimited) {
+    const spawnResult = await spawnPlannerReadonlyTask({
+      cfg,
+      agentId,
+      sessionKey,
+      nowMs: startedAt,
+      decision: plannerDecision,
+      existingRows: plannerRows,
+      currentRowId: plannerRow.id,
+      entry,
+    });
+    if (spawnResult.status === "accepted") {
+      plannerRow =
+        (await updatePlannerRow({
+          sessionKey,
+          rowId: plannerRow.id,
+          nowMs: startedAt,
+          patch: {
+            status: "spawned",
+            childSessionKey: spawnResult.childSessionKey,
+            runId: spawnResult.runId,
+            note: spawnResult.note,
+          },
+        })) ?? plannerRow;
+      prompt += `
+
+Planner worker:
+- spawned analyst worker to produce a brief for this goal
+- child session: ${spawnResult.childSessionKey ?? "unknown"}
+- brief will be surfaced directly when the worker completes — no confirmation needed
+- do not spawn another worker for the same goal unless this one fails or stalls`;
+    } else if (spawnResult.status === "skipped") {
+      const status = spawnResult.reason === "existing-active-spawn" ? "dropped" : "blocked";
+      plannerRow =
+        (await updatePlannerRow({
+          sessionKey,
+          rowId: plannerRow.id,
+          nowMs: startedAt,
+          patch: { status, note: spawnResult.note },
+        })) ?? plannerRow;
+      if (spawnResult.reason === "existing-active-spawn") {
+        prompt += `
+
+Planner worker:
+- a worker is already active for this brief goal
+- do not spawn another worker unless the current one fails or stalls`;
+      }
+    } else {
+      plannerRow =
+        (await updatePlannerRow({
+          sessionKey,
+          rowId: plannerRow.id,
+          nowMs: startedAt,
+          patch: { status: "blocked", note: spawnResult.note },
         })) ?? plannerRow;
       prompt += `
 

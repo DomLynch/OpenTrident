@@ -64,13 +64,20 @@ Capability-first directive locked:
 - [x] Trust dashboard (openclaw system trust)
 - [x] Backup automation (openclaw backup create/verify)
 - [x] Identity repo fully synced (bd6f1b9)
-- [ ] Autonomous task loop v1
-- [ ] Crypto/wallet layer
-- [ ] Internet-native multi-node distribution
+- [ ] Phase 1: Richer planner execution (action classes, worker loop, confirmation flow, recovery)
+- [ ] Phase 2: Market/news signal inbox
+- [ ] Phase 3: Autonomous task loop v1
+- [ ] Phase 4: Economic layer (wallet, cost ledger, revenue primitive)
+- [ ] Phase 5: Multi-instance (coordinator/worker split, inter-instance messaging)
+- [ ] Phase 6: Public output channel
+- [ ] Phase 7: Self-migration (health monitor, compute provisioning, migration execution)
 
 ## Next Move
 
 Move from surfaced planner goals into richer bounded execution.
+
+Full roadmap:
+- `ROADMAP.md` — 7 phases, detailed build specs, file paths, type definitions, sequencing
 
 Spec:
 - `PLANNER_ORCHESTRATOR_SPEC.md`

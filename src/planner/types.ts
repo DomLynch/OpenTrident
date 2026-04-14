@@ -41,7 +41,14 @@ export type PlannerGoal = {
   sourceItemId: string;
 };
 
-export type PlannerDecisionMode = "idle" | "surface" | "spawn_readonly" | "send";
+export type PlannerDecisionMode =
+  | "idle"
+  | "surface"
+  | "spawn_readonly"
+  | "draft_reply"
+  | "draft_issue"
+  | "brief"
+  | "send";
 
 export type PlannerDecision = {
   mode: PlannerDecisionMode;
