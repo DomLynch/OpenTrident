@@ -557,7 +557,9 @@ async function resolveHeartbeatPreflight(params: {
   // T6.1: Auto-publish significant market signals to public channel (cooldown: 30min)
   const publicChannelId = process.env.TELEGRAM_PUBLIC_CHANNEL_ID;
   if (publicChannelId && marketEventEntries.length > 0) {
-    const significantSignals = marketEventEntries.filter((e) => (e as any).score >= 0.6);
+    const significantSignals = marketEventEntries.filter((e): e is { text: string; score: number } =>
+      typeof (e as any).score === "number" && (e as any).score >= 0.6
+    );
     if (significantSignals.length > 0) {
       const now = Date.now();
       const lastPublishKey = "lastPublicChannelPublishMs";
@@ -569,16 +571,17 @@ async function resolveHeartbeatPreflight(params: {
         shouldPublish = now - lastPublish > 30 * 60 * 1000;
         if (shouldPublish) {
           store[lastPublishKey] = now;
+          await import("../../config/sessions/store.js").then((m) =>
+            m.saveSessionStore(storePath, store)
+          );
         }
       } catch {
         shouldPublish = true;
       }
       if (shouldPublish) {
-        const summaryLines = significantSignals.slice(0, 3).map((e) => {
-          const text = (e as any).text ?? String(e);
-          const score = (e as any).score ?? 0;
-          return `[${(score * 100).toFixed(0)}%] ${text}`;
-        });
+        const summaryLines = significantSignals.slice(0, 3).map((e) =>
+          `[${(e.score * 100).toFixed(0)}%] ${e.text}`
+        );
         const publishText = `📊 Market Signal\n\n${summaryLines.join("\n")}`;
         const outboundSession = buildOutboundSessionContext({ cfg, sessionKey: "public:heartbeat" });
         deliverOutboundPayloads({

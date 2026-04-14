@@ -122,10 +122,10 @@ Market Signal Collector — deployed on VPS r23.
 - [x] Phase 2 T2.1: Market Signal Collector (CoinGecko + HN + RSS) (r23)
 - [x] Phase 2 T2.2: Watchlist Configuration (r24)
 - [x] Phase 2 T2.3: Market Signal Rate Limiting (built into T2.1 intervals)
-- [ ] Phase 3: Autonomous task loop v1
-- [ ] Phase 4: Economic layer (wallet, cost ledger, revenue primitive)
-- [ ] Phase 5: Multi-instance (coordinator/worker split, inter-instance messaging)
-- [ ] Phase 6: Public output channel
+- [x] Phase 3: Autonomous task loop v1 (r26)
+- [x] Phase 4: Economic layer (wallet, cost ledger, revenue primitive) (r28)
+- [x] Phase 5: Multi-instance (coordinator/worker split, inter-instance messaging) (r29)
+- [x] Phase 6: Public output channel (r31)
 - [ ] Phase 7: Self-migration (health monitor, compute provisioning, migration execution)
 
 ## Completed: Phase 3 T3.1-T3.4 ✅
