@@ -82,7 +82,7 @@ for i in $(seq 1 $((HEALTH_WAIT / HEALTH_INTERVAL))); do
     HEALTH_OK=true
     break
   fi
-  echo "  Waiting... ${i}/${$((HEALTH_WAIT / HEALTH_INTERVAL))}"
+  echo "  Waiting... ${i}/$((HEALTH_WAIT / HEALTH_INTERVAL))"
 done
 
 if [[ "$HEALTH_OK" == "true" ]]; then
