@@ -48,6 +48,24 @@ Draft-to-Send Pipeline — deployed on VPS r22.
   - Updates planner row to `done` with `sentAt` + `draftResult`
 - `patch-chat.py`: Python patch script for safe VPS patching
 
+## Completed: Phase 2 T2.1 ✅
+
+Market Signal Collector — deployed on VPS r23.
+
+### T2.1 — Market Signal Collector ✅
+- `heartbeat-market-attention.ts`: `collectHeartbeatMarketEvents` with full API fetching
+  - **CoinGecko**: `simple/price` API for BTC/ETH/SOL/BNB/XRP/ADA/DOGE/DOT/AVAX/LINK prices + 24h change (free tier, polls every 5min)
+  - **Hacker News**: Algolia Search API for front-page stories filtered by crypto/AI/deFi keywords
+  - **RSS**: CoinTelegraph + The Block RSS feeds, HTML stripped and relevance-filtered
+  - **CryptoCompare**: News API for broader market coverage
+  - Circuit breaker: 3 consecutive failures opens 5-min breaker
+  - Cache: `market-attention-v1.json` in state dir, rolling 7-day window, max 30 signals
+- `heartbeat-runner.ts`: `collectHeartbeatMarketEvents` wired into heartbeat event collection
+  - Added to `Promise.all` alongside gmail/github/repo collectors
+  - Market events flow into `pendingEventEntries` → `resolveHeartbeatAttention` → `market_unreviewed` attention signal
+- `heartbeat-attention.ts`: attention resolution with MARKET_KEYWORDS for signal classification
+- Watchlist-based relevance scoring: high-impact (0.7) and medium-impact (0.5) keyword tiers
+
 ### T1.1 — Action Class Expansion ✅
 - `PlannerDecisionMode` expanded to 7 modes: idle/surface/spawn_readonly/draft_reply/draft_issue/brief/send
 - `resolveMode` routes each action class explicitly with score thresholds
@@ -101,7 +119,9 @@ Draft-to-Send Pipeline — deployed on VPS r22.
 - [x] VPS auto-sync (daily backup + git push)
 - [x] Phase 1 complete
 - [x] Phase 2 P0.1: Draft-to-Send Pipeline (r22)
-- [ ] Phase 2 T2.1: Market Signal Collector (CoinGecko + HN + RSS)
+- [x] Phase 2 T2.1: Market Signal Collector (CoinGecko + HN + RSS) (r23)
+- [ ] Phase 2 T2.2: Watchlist Configuration
+- [ ] Phase 2 T2.3: Market Signal Rate Limiting
 - [ ] Phase 3: Autonomous task loop v1
 - [ ] Phase 4: Economic layer (wallet, cost ledger, revenue primitive)
 - [ ] Phase 5: Multi-instance (coordinator/worker split, inter-instance messaging)
@@ -110,25 +130,21 @@ Draft-to-Send Pipeline — deployed on VPS r22.
 
 ## Current Gap
 
-- market/news signals not in yet (Phase 2 T2.1–T2.3)
+- watchlist configuration not yet editable via Telegram (Phase 2 T2.2)
+- market signal rate limiting in progress (Phase 2 T2.3)
 - autonomous task loop not running continuously
-
-## Policy
-
-No policy files. No approval gates. No enforcement layers.
-OpenTrident is Dom's digital twin — it inherits judgment, not gatekeeping.
 
 ## Next Move
 
-Phase 2 T2.1: Market Signal Collector. CoinGecko + HN + RSS → planner inbox.
+Phase 2 T2.2: Watchlist Configuration. Editable watchlist via Telegram command.
 
 Full roadmap: `ROADMAP.md`
 
 ## Deploy Notes
 
-- VPS: `opentrident:2026.4.14-r22` — healthy gateway + healthy CLI
-- GitHub runtime: `DomLynch/OpenTrident-runtime` `opentrident-prune` branch @ `98136f6d` (local commit, push blocked by large node_modules binaries)
-- GitHub identity: `DomLynch/OpenTrident` `main` branch @ `0a1945c`
+- VPS: `opentrident:2026.4.14-r23` — healthy gateway + healthy CLI
+- GitHub runtime: `DomLynch/OpenTrident-runtime` `opentrident-prune` branch @ `0120a0347` (local commit, push blocked by large node_modules binaries)
+- GitHub identity: `DomLynch/OpenTrident` `main` branch @ `fa00e46`
 - SSH key: `~/.ssh/binance_futures_tool` for `root@49.12.7.18`
 - Pre-commit hooks fail on VPS — use `git commit --no-verify`
 - Docker build requires `pnpm-lock.yaml` in build context
