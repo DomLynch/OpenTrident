@@ -25,58 +25,46 @@ ssh -i ~/.ssh/binance_futures_tool root@49.12.7.18 "docker logs opentrident-gate
 ## Deployment
 
 ### Standard Deploy
+
+**Always use `scripts/deploy.sh`** — it handles build with layer caching, image tagging, retention pruning, and cache cleanup in one step.
+
 ```bash
-# 1. SSH to VPS
-ssh -i ~/.ssh/binance_futures_tool root@49.12.7.18
+# From your Mac, deploy via SSH:
+ssh -i ~/.ssh/binance_futures_tool root@49.12.7.18 "cd /opt/opentrident && bash scripts/deploy.sh"
 
-# 2. Navigate to runtime
-cd /opt/opentrident
-
-# 3. Commit changes (bypass pre-commit hooks for speed)
-git add <files> && git commit --no-verify -m "feat: description"
-
-# 4. Push to runtime repo
-git push opentrident opentrident-prune:opentrident-prune
-
-# 5. Add pnpm-lock.yaml temporarily
-git add pnpm-lock.yaml
-
-# 6. Build Docker image (uses local pnpm-lock.yaml)
-docker build -t opentrident:<version> .
-
-# 7. Unstage pnpm-lock.yaml (keep it untracked)
-git reset HEAD pnpm-lock.yaml
-
-# 8. Update .env with new image tag
-sed -i 's/OPENTRIDENT_IMAGE=opentrident:<old>/OPENTRIDENT_IMAGE=opentrident:<new>/' .env
-
-# 9. Tag as latest
-docker tag opentrident:<version> opentrident:latest
-
-# 10. Redeploy
-docker compose -f docker-compose.vps.yml down && docker compose -f docker-compose.vps.yml up -d
-
-# 11. Wait and verify
-sleep 30 && curl http://127.0.0.1:18889/healthz
+# Or run locally if you have Docker access to the VPS:
+./scripts/deploy.sh
 ```
 
+The script automatically:
+- Builds with layer caching (no `--no-cache`)
+- Tags as `opentrident:latest` + `opentrident:YYYY.M.D-rHHMMSS`
+- Updates `.env` with the new image tag
+- Keeps last 3 versioned tags + latest, removes the rest
+- Prunes build cache after build
+- Restarts containers
+
+**Do NOT use `docker build` directly.** Do NOT use `--no-cache`.
+
 ### Emergency Rollback
+
+If the new deployment is broken, use the previous versioned tag:
+
 ```bash
-# Immediate rollback to previous image
-sed -i 's/OPENTRIDENT_IMAGE=opentrident:<current>/OPENTRIDENT_IMAGE=opentrident:<previous>/' .env
+# Find the previous image tag
+docker images opentrident --format '{{.Tag}}' | grep -v latest | sort | tail -3
+
+# Set it in .env and restart
+sed -i 's/OPENTRIDENT_IMAGE=.*/OPENTRIDENT_IMAGE=opentrident:<previous-tag>/' .env
 docker compose -f docker-compose.vps.yml up -d
 sleep 15 && curl http://127.0.0.1:18889/healthz
 ```
 
-### Image History
+### Current Image
+
 ```
-r12 = 2026.4.14-r12  (current)  Trust ramp loop + autonomy auto-adjust
-r11 = 2026.4.14-r11  Circuit breaker + retry-wrapped I/O
-r10 = 2026.4.14-r10  Send mode handler + planner-executor
-r9  = 2026.4.14-r9   Autonomy ladder wired into orchestrator (fix)
-r8  = 2026.4.14-r8   Types + goal-origination expanded
-r7  = 2026.4.14-r7   Market attention initial
-r6  = 2026.4.14-r6   Baseline runtime
+opentrident:2026.4.14-r34  — healthy (gateway + CLI running)
+opentrident:latest           — same as above
 ```
 
 ## Troubleshooting
@@ -161,20 +149,26 @@ The planner-recovery module automatically detects stale runs (>6h) and marks the
 
 ## Development
 
-### Testing changes locally
+### Testing changes
+
 ```bash
-# Build on VPS (don't commit)
-cd /opt/opentrident
-git add <changed-files>
+# 1. Commit and push changes to the runtime repo
+git add <changed-files> && git commit --no-verify -m "feat: description"
+git push opentrident opentrident-prune:opentrident-prune
 
-# Build test image
-docker build -t opentrident:test .
+# 2. Deploy using the standard script (same as production)
+ssh -i ~/.ssh/binance_futures_tool root@49.12.7.18 "cd /opt/opentrident && bash scripts/deploy.sh"
 
-# Deploy test
-docker compose -f docker-compose.vps.yml up -d
-
-# Verify
+# 3. Verify
 sleep 20 && curl http://127.0.0.1:18889/healthz
+```
 
-# If good: commit, push, build prod
+### Testing without deploying
+
+To build a test image without affecting running containers:
+
+```bash
+docker build -t opentrident:test .
+docker compose -f docker-compose.vps.yml -f docker-compose.vps.yml run --rm opentrident-gateway node --version  # smoke test
+docker rmi opentrident:test  # clean up
 ```
