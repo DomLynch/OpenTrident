@@ -193,7 +193,10 @@ Full roadmap: `ROADMAP.md`
 
 ## Deploy Notes
 
-- VPS: `opentrident:2026.4.14-r31` — healthy gateway + healthy CLI
+- VPS: `opentrident:2026.4.14-r32` — healthy gateway + healthy CLI
+- Bug fix r32: auto-publish cooldown now persists to disk (was in-memory only in r31)
+- Bug fix r32: market signal type guard eliminates `as any` cast
+- node_modules removed from git index on VPS (61,990 files, 1.6GB) — git push now unblocked
 - GitHub runtime: `DomLynch/OpenTrident-runtime` `opentrident-prune` branch @ `668d8a18b` (local commit, push blocked by large node_modules binaries)
 - GitHub identity: `DomLynch/OpenTrident` `main` branch @ `d53a916`
 - SSH key: `~/.ssh/binance_futures_tool` for `root@49.12.7.18`
