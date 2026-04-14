@@ -37,4 +37,22 @@ That's it. No policy file stack. No pre-read checklist.
 
 - MacBook: `/Users/domininclynch/Desktop/Business/OpenTrident`
 - GitHub: `https://github.com/DomLynch/OpenTrident`
-- VPS: `/opt/OpenTrident`
+- VPS: `/opt/opentrident`
+
+## Deploy Rules (VPS)
+
+**Always use `scripts/deploy.sh`** — never run raw docker commands.
+
+The script handles:
+- Building with layer caching (no `--no-cache`)
+- Tagging: rolling `opentrident:latest` + timestamped `opentrident:YYYY.M.D-rHHMMSS`
+- Updating `.env` with new tag
+- Image retention: keeps last 3 versioned tags + latest, deletes the rest
+- Build cache pruning: keeps last 24h of cache
+- Container restart
+
+**Do not:**
+- Use `--no-cache` unless explicitly debugging a cache corruption issue
+- Create a new image tag per deploy without pruning old ones
+- Run `docker build` directly — always go through `scripts/deploy.sh`
+- Use a version tag as the primary running image (use `latest`)
