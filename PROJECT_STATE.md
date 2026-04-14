@@ -120,8 +120,8 @@ Market Signal Collector — deployed on VPS r23.
 - [x] Phase 1 complete
 - [x] Phase 2 P0.1: Draft-to-Send Pipeline (r22)
 - [x] Phase 2 T2.1: Market Signal Collector (CoinGecko + HN + RSS) (r23)
-- [ ] Phase 2 T2.2: Watchlist Configuration
-- [ ] Phase 2 T2.3: Market Signal Rate Limiting
+- [x] Phase 2 T2.2: Watchlist Configuration (r24)
+- [x] Phase 2 T2.3: Market Signal Rate Limiting (built into T2.1 intervals)
 - [ ] Phase 3: Autonomous task loop v1
 - [ ] Phase 4: Economic layer (wallet, cost ledger, revenue primitive)
 - [ ] Phase 5: Multi-instance (coordinator/worker split, inter-instance messaging)
@@ -130,21 +130,19 @@ Market Signal Collector — deployed on VPS r23.
 
 ## Current Gap
 
-- watchlist configuration not yet editable via Telegram (Phase 2 T2.2)
-- market signal rate limiting in progress (Phase 2 T2.3)
 - autonomous task loop not running continuously
 
 ## Next Move
 
-Phase 2 T2.2: Watchlist Configuration. Editable watchlist via Telegram command.
+Phase 3 T3.1: Autonomous Task Loop Runner. Bridge between planner-during-heartbeat and continuous autonomous operation.
 
 Full roadmap: `ROADMAP.md`
 
 ## Deploy Notes
 
-- VPS: `opentrident:2026.4.14-r23` — healthy gateway + healthy CLI
-- GitHub runtime: `DomLynch/OpenTrident-runtime` `opentrident-prune` branch @ `0120a0347` (local commit, push blocked by large node_modules binaries)
-- GitHub identity: `DomLynch/OpenTrident` `main` branch @ `fa00e46`
+- VPS: `opentrident:2026.4.14-r24` — healthy gateway + healthy CLI
+- GitHub runtime: `DomLynch/OpenTrident-runtime` `opentrident-prune` branch @ `cb0d57e0b` (local commit, push blocked by large node_modules binaries)
+- GitHub identity: `DomLynch/OpenTrident` `main` branch @ `b41a457`
 - SSH key: `~/.ssh/binance_futures_tool` for `root@49.12.7.18`
 - Pre-commit hooks fail on VPS — use `git commit --no-verify`
 - Docker build requires `pnpm-lock.yaml` in build context
