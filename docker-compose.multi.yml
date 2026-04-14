@@ -3,6 +3,7 @@ version: "3.9"
 services:
   opentrident-coordinator:
     image: ${OPENTRIDENT_IMAGE:-opentrident:latest}
+    user: "0:0"
     environment:
       - OPENTRIDENT_INSTANCE_ROLE=coordinator
       - OPENTRIDENT_INSTANCE_ID=coordinator-1
@@ -13,8 +14,8 @@ services:
       - ./docs:/app/docs:ro
       - ./skills:/app/skills:ro
     ports:
-      - "127.0.0.1:18889:18789"
-      - "127.0.0.1:18890:18790"
+      - "127.0.0.1:18891:18789"
+      - "127.0.0.1:18892:18790"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
