@@ -30,6 +30,24 @@ Internet-native. Not dependent on any single provider. Not shutdownable.
 
 All 5 Phase 1 tasks complete and deployed on VPS r20.
 
+## Completed: Phase 2 P0.1 ✅
+
+Draft-to-Send Pipeline — deployed on VPS r22.
+
+### P0.1 — Draft-to-Send Pipeline ✅
+- `planner-approval-handler.ts`: `checkAndHandleApproval()` + `executeSend()` functions
+  - Intercepts inbound user replies at `server-methods/chat.ts` line ~1525
+  - Reads `planner-v1.json` for `status === "awaiting_confirmation"` rows
+  - Calls `parseApprovalResponse` on user's reply text
+  - `approved`: calls `executeSend()` → `deliverOutboundPayloads` with session delivery context
+  - `rejected`: updates row to `rejected`
+  - Returns `handled: true` → responds directly without invoking agent
+- `planner-send.ts`: `executeApprovedSend` using `deliverOutboundPayloads`
+  - Reads session store for `lastChannel/lastTo/lastAccountId/lastThreadId`
+  - Sends via Telegram (or configured channel)
+  - Updates planner row to `done` with `sentAt` + `draftResult`
+- `patch-chat.py`: Python patch script for safe VPS patching
+
 ### T1.1 — Action Class Expansion ✅
 - `PlannerDecisionMode` expanded to 7 modes: idle/surface/spawn_readonly/draft_reply/draft_issue/brief/send
 - `resolveMode` routes each action class explicitly with score thresholds
@@ -82,7 +100,8 @@ All 5 Phase 1 tasks complete and deployed on VPS r20.
 - [x] Recovery hardening (retry/downgrade/escalate/abandon state machine)
 - [x] VPS auto-sync (daily backup + git push)
 - [x] Phase 1 complete
-- [ ] Phase 2: Market/news signal inbox
+- [x] Phase 2 P0.1: Draft-to-Send Pipeline (r22)
+- [ ] Phase 2 T2.1: Market Signal Collector (CoinGecko + HN + RSS)
 - [ ] Phase 3: Autonomous task loop v1
 - [ ] Phase 4: Economic layer (wallet, cost ledger, revenue primitive)
 - [ ] Phase 5: Multi-instance (coordinator/worker split, inter-instance messaging)
@@ -91,9 +110,8 @@ All 5 Phase 1 tasks complete and deployed on VPS r20.
 
 ## Current Gap
 
-- market/news signals not in yet
+- market/news signals not in yet (Phase 2 T2.1–T2.3)
 - autonomous task loop not running continuously
-- `executeApprovedSend` is stub (needs real Telegram/GitHub send wiring on VPS runtime)
 
 ## Policy
 
@@ -102,15 +120,15 @@ OpenTrident is Dom's digital twin — it inherits judgment, not gatekeeping.
 
 ## Next Move
 
-Phase 2: Market/news signal inbox. CoinGecko + HN + RSS wired into planner inbox.
+Phase 2 T2.1: Market Signal Collector. CoinGecko + HN + RSS → planner inbox.
 
 Full roadmap: `ROADMAP.md`
 
 ## Deploy Notes
 
-- VPS: `opentrident:2026.4.14-r20` — healthy gateway + healthy CLI
-- GitHub runtime: `DomLynch/OpenTrident-runtime` `opentrident-prune` branch @ `f2291f7b3`
-- GitHub identity: `DomLynch/OpenTrident` `main` branch @ `40d52de`
+- VPS: `opentrident:2026.4.14-r22` — healthy gateway + healthy CLI
+- GitHub runtime: `DomLynch/OpenTrident-runtime` `opentrident-prune` branch @ `98136f6d` (local commit, push blocked by large node_modules binaries)
+- GitHub identity: `DomLynch/OpenTrident` `main` branch @ `0a1945c`
 - SSH key: `~/.ssh/binance_futures_tool` for `root@49.12.7.18`
 - Pre-commit hooks fail on VPS — use `git commit --no-verify`
 - Docker build requires `pnpm-lock.yaml` in build context
