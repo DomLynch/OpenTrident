@@ -94,4 +94,6 @@ export type PlannerStateRow = {
   confirmationToken?: string;
   confirmedAt?: number;
   sentAt?: number;
+  retryCount?: number;
+  downgradedFrom?: PlannerActionClass;
 };

@@ -3,22 +3,14 @@ import { adjustDomainAutonomy } from "./autonomy-ladder.js";
 import { updatePlannerRow } from "./planner-state.js";
 import type { PlannerStateRow } from "./types.js";
 
-export async function executeApprovedSend(params: {
-  row: PlannerStateRow;
-  approvedContent: string;
-  nowMs: number;
-  stateDir?: string;
-}): Promise<{ ok: boolean; error?: string }> {
-  // IDENTITY REPO STUB: sendMessage requires runtime environment (Telegram/broadcast channel).
-  // On VPS runtime, this delegates to the appropriate outbound delivery channel.
-  // Tests should mock this function to simulate send success/failure.
-  return { ok: false, error: "sendMessage not available in identity repo" };
-}
+export type ApprovalResult =
+  | { approved: true; modified: false; content?: undefined }
+  | { approved: true; modified: true; content: string }
+  | { approved: false; modified: false };
 
-export function parseApprovalResponse(
-  text: string,
-): { approved: boolean; content?: string } | null {
+export function parseApprovalResponse(text: string): ApprovalResult | null {
   const lower = text.toLowerCase().trim();
+
   if (
     lower === "yes" ||
     lower === "send" ||
@@ -27,19 +19,82 @@ export function parseApprovalResponse(
     lower === "approve" ||
     lower === "go" ||
     lower === "y" ||
-    lower === "confirmed"
+    lower === "confirmed" ||
+    lower === "looks good" ||
+    lower === "lg" ||
+    lower === "lgtm" ||
+    lower === "ship it" ||
+    lower === "post it" ||
+    lower === "publish"
   ) {
-    return { approved: true };
+    return { approved: true, modified: false };
   }
+
   if (
     lower === "no" ||
     lower === "cancel" ||
     lower === "dont" ||
     lower === "don't" ||
     lower === "stop" ||
-    lower === "abort"
+    lower === "abort" ||
+    lower === "kill" ||
+    lower === "discard" ||
+    lower === "reject"
   ) {
-    return { approved: false };
+    return { approved: false, modified: false };
   }
+
   return null;
+}
+
+export async function executeApprovedSend(params: {
+  row: PlannerStateRow;
+  approvedContent: string;
+  nowMs: number;
+  stateDir?: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  return { ok: false, error: "sendMessage not available in identity repo" };
+}
+
+export async function recordApprovalOutcome(params: {
+  row: PlannerStateRow;
+  result: "approved" | "rejected" | "modified";
+  content?: string;
+  nowMs: number;
+}): Promise<void> {
+  const { row, result, nowMs } = params;
+
+  const statusMap: Record<string, PlannerStateRow["status"]> = {
+    approved: "approved",
+    rejected: "rejected",
+    modified: "modified",
+  };
+
+  await updatePlannerRow({
+    sessionKey: row.sessionKey,
+    rowId: row.id,
+    nowMs,
+    patch: {
+      status: statusMap[result] ?? "rejected",
+      draftResult: params.content ?? row.draftResult,
+      confirmedAt: nowMs,
+    },
+  });
+
+  await recordActionOutcome({
+    actionClass: row.actionClass,
+    domain: row.domain,
+    source: "planner-approval",
+    outcome: result,
+  });
+
+  if (row.domain) {
+    await adjustDomainAutonomy({
+      domain: row.domain,
+      total: 1,
+      approved: result === "approved" ? 1 : 0,
+      rejected: result === "rejected" ? 1 : 0,
+      modified: result === "modified" ? 1 : 0,
+    });
+  }
 }

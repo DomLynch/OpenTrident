@@ -742,6 +742,59 @@ ${plannerDecision.promptBlock}`;
     prompt += `
 
 ${lines.join("\n")}`;
+
+    for (const recoveryAction of recoveryActions) {
+      const targetRow = plannerRows.find((r) => r.id === recoveryAction.rowId);
+      if (!targetRow) continue;
+
+      const currentRetryCount = targetRow.retryCount ?? 0;
+
+      if (recoveryAction.action === "abandon") {
+        await updatePlannerRow({
+          sessionKey,
+          rowId: recoveryAction.rowId,
+          nowMs: startedAt,
+          patch: {
+            status: "dropped",
+            note: `${recoveryAction.reason} (retries: ${currentRetryCount})`,
+          },
+        });
+      } else if (recoveryAction.action === "downgrade") {
+        await updatePlannerRow({
+          sessionKey,
+          rowId: recoveryAction.rowId,
+          nowMs: startedAt,
+          patch: {
+            status: "selected",
+            actionClass: "draft_reply",
+            downgradedFrom: "send_reply",
+            mode: "draft_reply",
+            retryCount: 0,
+            note: "Downgraded from send_reply to draft_reply — confirmation required before any send.",
+          },
+        });
+      } else if (recoveryAction.action === "escalate") {
+        await updatePlannerRow({
+          sessionKey,
+          rowId: recoveryAction.rowId,
+          nowMs: startedAt,
+          patch: {
+            status: "escalated",
+            retryCount: currentRetryCount + 1,
+          },
+        });
+      } else if (recoveryAction.action === "retry") {
+        await updatePlannerRow({
+          sessionKey,
+          rowId: recoveryAction.rowId,
+          nowMs: startedAt,
+          patch: {
+            status: "selected",
+            retryCount: currentRetryCount + 1,
+          },
+        });
+      }
+    }
   }
 
   return { prompt, hasExecCompletion, hasCronEvents, plannerDecision };
