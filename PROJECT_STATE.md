@@ -153,22 +153,47 @@ Autonomous Task Loop v1 — deployed on VPS r26.
 - `adjustDomainAutonomy` already wired in `planner-executor.ts` via `recordApprovalOutcome`
 - Post-approval/rejection → adjustDomainAutonomy → domain autonomy level update
 
+## Completed: Phase 4 T4.1+T4.2+T4.4 ✅
+
+Solana wallet + cost ledger + economic context — deployed on VPS r28.
+
+- `economic/wallet.ts`: `generateWallet`, `loadWalletKey`, `getWalletBalance`, `sendSol` with AES-256-CBC encryption
+- `economic/cost-ledger.ts`: `recordVpsCost`, `recordApiCost`, `recordRevenue`, `getCostSummary`, `buildCostContext`
+- `heartbeat-runner.ts`: economic context (cost + wallet) appended to heartbeat prompt after memory context
+
+## Completed: Phase 5 T5.1+T5.2+T5.5 ✅
+
+Instance registry + messaging + multi-instance compose — deployed on VPS r29.
+
+- `multi/instance-registry.ts`: `registerInstance`, `updateInstanceHeartbeat`, `deregisterInstance`, `getActiveInstances`
+- `multi/instance-messaging.ts`: `sendInstanceMessage`, `pollInstanceMessages`, `getOutboxMessages`
+- `docker-compose.multi.yml`: coordinator + worker-1 + worker-2 with shared `opentrident-state` volume
+
+## Completed: Phase 6 T6.1 ✅
+
+Telegram public channel — deployed on VPS r31.
+
+- `commands-publish.ts`: `/publish <message>` command with `sendToPublicChannel`
+- `heartbeat-runner.ts`: auto-publish significant market signals (score >= 0.6) to public channel with 30min cooldown
+- `commands-registry.shared.ts`: `/publish` command registered in builtin chat commands
+- `commands-handlers.runtime.ts`: `handlePublishCommand` registered in loadCommandHandlers
+- `.env`: `TELEGRAM_PUBLIC_CHANNEL_ID` (set to placeholder `-1001234567890`, update to real channel ID)
+- Auth: `TELEGRAM_AUTHORIZED_USERS` env var controls who can use `/publish`
+
 ## Current Gap
 
-- economic layer not yet implemented (Phase 4)
-- multi-instance not yet implemented (Phase 5)
-- public output channel not yet implemented (Phase 6)
-- self-migration not yet implemented (Phase 7)
+- Phase 6 T6.2: Content quality loop (track Telegram view counts → trust telemetry)
+- Phase 7 T7.1-T7.4: Self-migration
 
 ## Next Move
 
-Phase 4 T4.1: Solana wallet integration — generate keypair, read balance, send SOL.
+Phase 6 T6.2: Content quality loop — wire Telegram view counts into trust telemetry to close the feedback loop.
 
 Full roadmap: `ROADMAP.md`
 
 ## Deploy Notes
 
-- VPS: `opentrident:2026.4.14-r26` — healthy gateway + healthy CLI
+- VPS: `opentrident:2026.4.14-r31` — healthy gateway + healthy CLI
 - GitHub runtime: `DomLynch/OpenTrident-runtime` `opentrident-prune` branch @ `668d8a18b` (local commit, push blocked by large node_modules binaries)
 - GitHub identity: `DomLynch/OpenTrident` `main` branch @ `d53a916`
 - SSH key: `~/.ssh/binance_futures_tool` for `root@49.12.7.18`

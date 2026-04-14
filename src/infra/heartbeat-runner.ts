@@ -49,6 +49,8 @@ import { resolvePlannerRecoveryActions } from "../planner/planner-recovery.js";
 import { spawnPlannerReadonlyTask } from "../planner/planner-spawn.js";
 import { readPlannerRows, recordPlannerDecision, updatePlannerRow } from "../planner/planner-state.js";
 import { buildMemoryContext } from "../planner/planner-memory.js";
+import { buildCostContext } from "../economic/cost-ledger.js";
+import { buildEconomicContext as buildWalletContext } from "../economic/wallet.js";
 import { processWorkerResults } from "../planner/planner-result-handler.js";
 import { isSpawnRateLimited } from "../planner/planner-security.js";
 import { getQueueSize } from "../process/command-queue.js";
@@ -551,6 +553,48 @@ async function resolveHeartbeatPreflight(params: {
           collectHeartbeatGithubEvents({ nowMs: params.nowMs }),
           collectHeartbeatMarketEvents({ nowMs: params.nowMs }),
         ]);
+
+  // T6.1: Auto-publish significant market signals to public channel (cooldown: 30min)
+  const publicChannelId = process.env.TELEGRAM_PUBLIC_CHANNEL_ID;
+  if (publicChannelId && marketEventEntries.length > 0) {
+    const significantSignals = marketEventEntries.filter((e) => (e as any).score >= 0.6);
+    if (significantSignals.length > 0) {
+      const now = Date.now();
+      const lastPublishKey = "lastPublicChannelPublishMs";
+      let shouldPublish = false;
+      try {
+        const storePath = resolveStorePath(undefined, { agentId: "main" });
+        const store = loadSessionStore(storePath);
+        const lastPublish = (store[lastPublishKey] as number) ?? 0;
+        shouldPublish = now - lastPublish > 30 * 60 * 1000;
+        if (shouldPublish) {
+          store[lastPublishKey] = now;
+        }
+      } catch {
+        shouldPublish = true;
+      }
+      if (shouldPublish) {
+        const summaryLines = significantSignals.slice(0, 3).map((e) => {
+          const text = (e as any).text ?? String(e);
+          const score = (e as any).score ?? 0;
+          return `[${(score * 100).toFixed(0)}%] ${text}`;
+        });
+        const publishText = `📊 Market Signal\n\n${summaryLines.join("\n")}`;
+        const outboundSession = buildOutboundSessionContext({ cfg, sessionKey: "public:heartbeat" });
+        deliverOutboundPayloads({
+          cfg,
+          channel: "telegram",
+          to: publicChannelId,
+          payloads: [{ text: publishText }],
+          replyToId: null,
+          threadId: null,
+          session: outboundSession,
+          abortSignal: undefined,
+        }).catch(() => {});
+      }
+    }
+  }
+
   const pendingEventEntries = [
     ...queuedEventEntries,
     ...gmailEventEntries,
@@ -732,6 +776,16 @@ ${plannerDecision.promptBlock}`;
     }
   } catch {
     // Memory not available
+  }
+
+  try {
+    const costCtx = await buildCostContext();
+    const walletCtx = await buildWalletContext();
+    if (costCtx || walletCtx) {
+      prompt += `\n\n${[costCtx, walletCtx].filter(Boolean).join("\n")}`;
+    }
+  } catch {
+    // Economic context not available
   }
 
   if (recoveryActions.length > 0) {
