@@ -1,2 +1,11 @@
 node_modules/
 .pnpm-store/
+.env
+.venv/
+venv/
+.DS_Store
+*.swp
+*.swo
+dist/
+build/
+*.log
