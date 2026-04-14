@@ -160,28 +160,12 @@ async function fetchCoinGeckoPrices(): Promise<string[]> {
       string,
       { usd?: number; usd_24h_change?: number }
     >;
-    const prevPrices = loadMarketCache.cache ?? {};
     for (const [coin, info] of Object.entries(data)) {
       const price = info.usd ?? 0;
       const change = info.usd_24h_change ?? 0;
-      const prev = prevPrices[coin];
-      if (!prev) {
-        signals.push(
-          `${coin.toUpperCase()} at $${price.toLocaleString()} (${change >= 0 ? "+" : ""}${change.toFixed(2)}% 24h)`,
-        );
-      } else {
-        const prevChange = prev.change24h;
-        if (Math.abs(change - prevChange) > 2) {
-          const direction = change > prevChange ? "surged" : "dropped";
-          signals.push(
-            `${coin.toUpperCase()} ${direction} ${Math.abs(change - prevChange).toFixed(1)}% in 24h — now $${price.toLocaleString()}`,
-          );
-        } else if (Math.abs(change) > 5) {
-          signals.push(
-            `${coin.toUpperCase()} ${change >= 0 ? "+" : ""}${change.toFixed(2)}% in 24h — $${price.toLocaleString()}`,
-          );
-        }
-      }
+      signals.push(
+        `${coin.toUpperCase()} @ $${price.toLocaleString()} (${change >= 0 ? "+" : ""}${change.toFixed(2)}% 24h)`,
+      );
     }
   } catch {
     // CoinGecko fetch failed, continue with other sources
@@ -198,7 +182,6 @@ async function fetchHackerNews(): Promise<string[]> {
       hits?: Array<{ title?: string; url?: string; _tags?: string[] }>;
     };
     if (!data.hits) return signals;
-    const cryptoTags = ["story", "front_page"];
     for (const hit of data.hits.slice(0, 10)) {
       const title = hit.title ?? "";
       const url = hit.url ?? "";
@@ -335,7 +318,7 @@ export async function collectHeartbeatMarketEvents(params?: {
   const events: SystemEvent[] = [];
 
   for (const signal of mergedSignals.slice(0, MAX_SIGNALS)) {
-    const previous = nextSeen[signal.fingerprint] ?? 0;
+    const previous = nextSeen[signal.fingerprint] >= 0;
     if (previous > 0 && nowMs - previous < MARKET_SIGNAL_INTERVAL_MS) continue;
     nextSeen[signal.fingerprint] = nowMs;
     events.push({
