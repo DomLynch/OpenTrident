@@ -7,14 +7,6 @@ import { getTrustMetrics } from "./trust-telemetry.js";
 import { sanitizeEvidence, validateActionClass, validatePlannerDomain } from "./planner-security.js";
 import type { PlannerDecision, PlannerDecisionMode, PlannerItem } from "./types.js";
 
-const SPAWNABLE_ACTION_CLASSES = new Set([
-  "spawn_readonly",
-  "draft_reply",
-  "draft_issue",
-  "brief",
-  "send_reply",
-]);
-
 function compactWhitespace(text: string): string {
   return text.replace(/\s+/g, " ").trim();
 }

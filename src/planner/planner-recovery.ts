@@ -15,12 +15,6 @@ function getRetryCount(row: PlannerStateRow): number {
   return row.retryCount ?? 0;
 }
 
-function getNoteRetryCount(note: string | undefined): number {
-  if (!note) return 0;
-  const match = note.match(/retryCount:(\d+)/);
-  return match ? parseInt(match[1], 10) : 0;
-}
-
 export function resolvePlannerRecoveryActions(params: {
   nowMs: number;
   rows: readonly PlannerStateRow[];

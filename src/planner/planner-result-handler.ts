@@ -63,7 +63,7 @@ export async function handleWorkerResult(params: HandleWorkerResultParams): Prom
 }> {
   const { row, sessionKey, nowMs } = params;
 
-  const ACTIVE_STATUSES = new Set(["spawned", "running", "selected", "candidate"]);
+  const ACTIVE_STATUSES = new Set(["spawned", "running"]);
   if (!ACTIVE_STATUSES.has(row.status)) {
     return { updated: false };
   }
