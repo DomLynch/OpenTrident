@@ -193,12 +193,11 @@ Full roadmap: `ROADMAP.md`
 
 ## Deploy Notes
 
-- VPS: `opentrident:2026.4.14-r32` — healthy gateway + healthy CLI
-- Bug fix r32: auto-publish cooldown now persists to disk (was in-memory only in r31)
-- Bug fix r32: market signal type guard eliminates `as any` cast
-- node_modules removed from git index on VPS (61,990 files, 1.6GB) — git push now unblocked
-- GitHub runtime: `DomLynch/OpenTrident-runtime` `opentrident-prune` branch @ `668d8a18b` (local commit, push blocked by large node_modules binaries)
-- GitHub identity: `DomLynch/OpenTrident` `main` branch @ `d53a916`
+- VPS: `opentrident:2026.4.14-r34` — healthy gateway + healthy CLI
+- r34 fix: T6.1 auto-publish — cooldown persists via `saveSessionStore`, type guard on market signals, uses `deliverOutboundPayloads` directly (static imports)
+- node_modules removed from entire git history via `git-filter-repo` — .git directory reduced from 1.6GB to 63MB, git push to runtime repo now works cleanly
+- GitHub runtime: `DomLynch/OpenTrident-runtime` `opentrident-prune` branch @ `f2718f9f` (synced and healthy)
+- GitHub identity: `DomLynch/OpenTrident` `main` branch — sync in progress
 - SSH key: `~/.ssh/binance_futures_tool` for `root@49.12.7.18`
 - Pre-commit hooks fail on VPS — use `git commit --no-verify`
 - Docker build requires `pnpm-lock.yaml` in build context

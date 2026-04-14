@@ -571,9 +571,7 @@ async function resolveHeartbeatPreflight(params: {
         shouldPublish = now - lastPublish > 30 * 60 * 1000;
         if (shouldPublish) {
           store[lastPublishKey] = now;
-          await import("../../config/sessions/store.js").then((m) =>
-            m.saveSessionStore(storePath, store)
-          );
+          await saveSessionStore(storePath, store);
         }
       } catch {
         shouldPublish = true;
