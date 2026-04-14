@@ -698,7 +698,7 @@ After completing all due tasks, reply HEARTBEAT_OK.`;
     return { prompt: promptedBase, hasExecCompletion, hasCronEvents };
   }
 
-  const plannerDecision = resolvePlannerDecision({
+  const plannerDecision = await resolvePlannerDecision({
     nowMs: params.startedAt,
     entry: params.preflight.session.entry,
     pendingEvents: pendingEventEntries,

@@ -27,10 +27,10 @@ function trimEvidence(text: string, maxChars = 160): string {
   return `${compact.slice(0, Math.max(0, maxChars - 1)).trimEnd()}…`;
 }
 
-function buildPromptBlock(params: {
+async function buildPromptBlock(params: {
   decision: PlannerDecision;
   previousHeartbeatText?: string;
-}): string | undefined {
+}): Promise<string | undefined> {
   const { decision } = params;
   if (!decision.goal || !decision.topItem) {
     return undefined;
@@ -81,7 +81,7 @@ function buildPromptBlock(params: {
   }
 
   try {
-    const trustMetrics = getTrustMetrics();
+    const trustMetrics = await getTrustMetrics();
     if (trustMetrics.totalActions > 0) {
       lines.push("");
       lines.push("Trust telemetry (last 7 days):");
@@ -138,7 +138,7 @@ type PlannerSessionEntry = Pick<
   "updatedAt" | "lastChannel" | "lastTo" | "lastHeartbeatText" | "lastHeartbeatSentAt"
 >;
 
-export function resolvePlannerDecision(params: {
+export async function resolvePlannerDecision(params: {
   nowMs: number;
   entry?: PlannerSessionEntry;
   pendingEvents?: readonly SystemEvent[];
@@ -160,7 +160,7 @@ export function resolvePlannerDecision(params: {
     domain: safeDomain,
     actionClass: safeActionClass,
   };
-  const autonomyConfig = getDomainAutonomyConfig();
+  const autonomyConfig = await getDomainAutonomyConfig();
   const autonomyLevel = getAutonomyLevel(safeGoal.domain, autonomyConfig);
   const needsConfirmation = requiresConfirmation(safeGoal.domain, safeGoal.actionClass, autonomyConfig);
   const mode = resolveMode({
@@ -176,7 +176,7 @@ export function resolvePlannerDecision(params: {
     goal: safeGoal,
     candidates,
   };
-  decision.promptBlock = buildPromptBlock({
+  decision.promptBlock = await buildPromptBlock({
     decision,
     previousHeartbeatText: params.entry?.lastHeartbeatText,
   });

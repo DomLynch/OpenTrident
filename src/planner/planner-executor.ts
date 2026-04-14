@@ -9,6 +9,9 @@ export async function executeApprovedSend(params: {
   nowMs: number;
   stateDir?: string;
 }): Promise<{ ok: boolean; error?: string }> {
+  // IDENTITY REPO STUB: sendMessage requires runtime environment (Telegram/broadcast channel).
+  // On VPS runtime, this delegates to the appropriate outbound delivery channel.
+  // Tests should mock this function to simulate send success/failure.
   return { ok: false, error: "sendMessage not available in identity repo" };
 }
 
