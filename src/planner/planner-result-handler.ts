@@ -3,6 +3,7 @@ import path from "node:path";
 import { resolveStorePath } from "../config/sessions/paths.js";
 import { loadSessionStore } from "../config/sessions/store-load.js";
 import { updatePlannerRow } from "./planner-state.js";
+import { recordAutonomousAction } from "./autonomous-loop.js";
 import type { PlannerStateRow } from "./types.js";
 
 const CHILD_COMPLETION_CHECK_WINDOW_MS = 30_000;
@@ -113,6 +114,20 @@ export async function handleWorkerResult(params: HandleWorkerResultParams): Prom
     nowMs,
     patch,
   });
+
+  await recordAutonomousAction({
+    goalId: row.id,
+    goalTitle: row.title,
+    actionClass: row.actionClass,
+    domain: row.domain,
+    outcome: newStatus === "done"
+      ? "completed"
+      : newStatus === "awaiting_confirmation"
+        ? "approved"
+        : newStatus === "failed"
+          ? "rejected"
+          : "spawned",
+  }).catch(() => {});
 
   return { updated: true, newStatus, draftResult };
 }

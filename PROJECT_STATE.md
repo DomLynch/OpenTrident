@@ -128,21 +128,49 @@ Market Signal Collector — deployed on VPS r23.
 - [ ] Phase 6: Public output channel
 - [ ] Phase 7: Self-migration (health monitor, compute provisioning, migration execution)
 
+## Completed: Phase 3 T3.1-T3.4 ✅
+
+Autonomous Task Loop v1 — deployed on VPS r26.
+
+### T3.1 — Autonomous Loop Gate ✅
+- `autonomous-loop.ts`: `checkAutonomousGate` — gate guards all spawn modes in heartbeat
+  - Cold start protection: requires >= 5 prior approved actions
+  - Approval rate threshold: >= 70% in last 7 days
+  - Max concurrent autonomous workers: 3
+  - Active conversation guard: no spawn within 5min of user activity
+  - Recent surface guard: no spawn within 30s of prior surface
+
+### T3.2 — Run-Until-Done Workers ✅
+- Worker task templates updated with self-assessment prompts for all action classes
+- Each template includes "Self-assessment before returning" + "Done Check" sections
+
+### T3.3 — Memory Write-Back ✅
+- `planner-result-handler.ts`: `recordAutonomousAction` called on every worker completion
+- Outcomes logged to memory: spawned/completed/approved/rejected by goal
+- Categories: decision, context, project, relationship
+
+### T3.4 — Adapt (Autonomy Ladder Feedback) ✅
+- `adjustDomainAutonomy` already wired in `planner-executor.ts` via `recordApprovalOutcome`
+- Post-approval/rejection → adjustDomainAutonomy → domain autonomy level update
+
 ## Current Gap
 
-- autonomous task loop not running continuously
+- economic layer not yet implemented (Phase 4)
+- multi-instance not yet implemented (Phase 5)
+- public output channel not yet implemented (Phase 6)
+- self-migration not yet implemented (Phase 7)
 
 ## Next Move
 
-Phase 3 T3.1: Autonomous Task Loop Runner. Bridge between planner-during-heartbeat and continuous autonomous operation.
+Phase 4 T4.1: Solana wallet integration — generate keypair, read balance, send SOL.
 
 Full roadmap: `ROADMAP.md`
 
 ## Deploy Notes
 
-- VPS: `opentrident:2026.4.14-r24` — healthy gateway + healthy CLI
-- GitHub runtime: `DomLynch/OpenTrident-runtime` `opentrident-prune` branch @ `cb0d57e0b` (local commit, push blocked by large node_modules binaries)
-- GitHub identity: `DomLynch/OpenTrident` `main` branch @ `b41a457`
+- VPS: `opentrident:2026.4.14-r26` — healthy gateway + healthy CLI
+- GitHub runtime: `DomLynch/OpenTrident-runtime` `opentrident-prune` branch @ `668d8a18b` (local commit, push blocked by large node_modules binaries)
+- GitHub identity: `DomLynch/OpenTrident` `main` branch @ `d53a916`
 - SSH key: `~/.ssh/binance_futures_tool` for `root@49.12.7.18`
 - Pre-commit hooks fail on VPS — use `git commit --no-verify`
 - Docker build requires `pnpm-lock.yaml` in build context

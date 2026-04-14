@@ -69,6 +69,11 @@ export function buildPlannerBoundedTask(decision: PlannerDecision): string | und
         "- Produce a structured brief only. No sends, pushes, writes, merges, trades, or irreversible actions.",
         "- Be analytical and concise.",
         "",
+        "Self-assessment before returning:",
+        "- Have I addressed the goal completely?",
+        "- Is the analysis grounded in the evidence above?",
+        "- Is there anything missing that Dom should know?",
+        "",
         "Return format:",
         "## Brief",
         "### Situation",
@@ -77,6 +82,8 @@ export function buildPlannerBoundedTask(decision: PlannerDecision): string | und
         "[Key observations and reasoning]",
         "### Recommendations",
         "[Proposed next steps if any]",
+        "### Done Check",
+        "[Confirm: brief is complete and ready for review]",
       ].join("\n");
     case "draft_reply":
     case "send_reply":
@@ -95,6 +102,11 @@ export function buildPlannerBoundedTask(decision: PlannerDecision): string | und
         "- Match the tone and style appropriate for the relationship context.",
         "- Produce a complete draft ready for review.",
         "",
+        "Self-assessment before returning:",
+        "- Is the draft complete and ready to send as-is?",
+        "- Is the tone appropriate?",
+        "- Are there any factual errors or omissions?",
+        "",
         "Return format:",
         "## Draft Message",
         "### To",
@@ -106,6 +118,8 @@ export function buildPlannerBoundedTask(decision: PlannerDecision): string | und
         "",
         "### Notes for Dom",
         "[Any considerations or things Dom should know before sending]",
+        "### Done Check",
+        "[Confirm: draft is complete and ready for Dom's review]",
       ].join("\n");
     case "draft_issue":
       return [
@@ -148,10 +162,16 @@ export function buildPlannerBoundedTask(decision: PlannerDecision): string | und
         "- No sends, pushes, writes, merges, trades, or irreversible actions.",
         "- Inspect, reason, and return a concise result.",
         "",
+        "Self-assessment before returning:",
+        "- Have I produced a complete answer to the goal?",
+        "- Is the evidence sufficient and accurate?",
+        "- Is there anything I should flag for Dom's attention?",
+        "",
         "Return format:",
         "1. What matters",
         "2. Evidence",
         "3. Recommended next step",
+        "4. Done Check: [confirm complete or note what is still unresolved]",
       ].join("\n");
   }
 }
