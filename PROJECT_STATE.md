@@ -189,15 +189,19 @@ Telegram public channel — deployed on VPS r31.
 
 Phase 6 T6.2: Content quality loop — wire Telegram view counts into trust telemetry to close the feedback loop.
 
+Remaining: T6.2 (content quality), T7.1-T7.4 (self-migration), full AAA audit.
+
 Full roadmap: `ROADMAP.md`
 
 ## Deploy Notes
 
-- VPS: `opentrident:2026.4.14-r34` — healthy gateway + healthy CLI
-- r34 fix: T6.1 auto-publish — cooldown persists via `saveSessionStore`, type guard on market signals, uses `deliverOutboundPayloads` directly (static imports)
-- node_modules removed from entire git history via `git-filter-repo` — .git directory reduced from 1.6GB to 63MB, git push to runtime repo now works cleanly
-- GitHub runtime: `DomLynch/OpenTrident-runtime` `opentrident-prune` branch @ `f2718f9f` (synced and healthy)
-- GitHub identity: `DomLynch/OpenTrident` `main` branch — sync in progress
+**Always use `scripts/deploy.sh`** — never raw docker commands.
+
+- VPS: `opentrident:2026.4.14-r34` — healthy gateway + healthy CLI (97GB free, 2 images)
+- Deploy script (`scripts/deploy.sh`): layer caching (no --no-cache), image retention (last 3 + latest), build cache prune after each deploy
+- node_modules removed from entire git history via `git-filter-repo` — .git 63MB (was 1.6GB+), git push to runtime repo now works cleanly
+- GitHub runtime: `DomLynch/OpenTrident-runtime` `opentrident-prune` @ `f2718f9f`
+- GitHub identity: `DomLynch/OpenTrident` `main` @ `136046c`
 - SSH key: `~/.ssh/binance_futures_tool` for `root@49.12.7.18`
 - Pre-commit hooks fail on VPS — use `git commit --no-verify`
 - Docker build requires `pnpm-lock.yaml` in build context
