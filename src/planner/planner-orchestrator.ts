@@ -157,7 +157,7 @@ export async function resolvePlannerDecision(params: {
   nowMs: number;
   entry?: PlannerSessionEntry;
   pendingEvents?: readonly SystemEvent[];
-}): PlannerDecision {
+}): Promise<PlannerDecision> {
   const candidates = buildPlannerInbox(params);
   const topItem = selectTopPlannerCandidate(candidates);
   if (!topItem || topItem.score < 0.33) {
