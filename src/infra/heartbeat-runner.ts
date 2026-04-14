@@ -79,6 +79,7 @@ import {
 import { emitHeartbeatEvent, resolveIndicatorType } from "./heartbeat-events.js";
 import { collectHeartbeatGmailEvents } from "./heartbeat-gmail-attention.js";
 import { collectHeartbeatGithubEvents } from "./heartbeat-github-attention.js";
+import { collectHeartbeatMarketEvents } from "./heartbeat-market-attention.js";
 import { collectHeartbeatRepoEvents } from "./heartbeat-repo-attention.js";
 import { resolveHeartbeatReasonKind } from "./heartbeat-reason.js";
 import {
@@ -541,19 +542,21 @@ async function resolveHeartbeatPreflight(params: {
     params.forcedSessionKey,
   );
   const queuedEventEntries = peekSystemEventEntries(session.sessionKey);
-  const [gmailEventEntries, repoEventEntries, githubEventEntries] =
+  const [gmailEventEntries, repoEventEntries, githubEventEntries, marketEventEntries] =
     reasonFlags.isExecEventReason || reasonFlags.isCronEventReason
-      ? [[], [], []]
+      ? [[], [], [], []]
       : await Promise.all([
           collectHeartbeatGmailEvents({ nowMs: params.nowMs }),
           collectHeartbeatRepoEvents({ nowMs: params.nowMs }),
           collectHeartbeatGithubEvents({ nowMs: params.nowMs }),
+          collectHeartbeatMarketEvents({ nowMs: params.nowMs }),
         ]);
   const pendingEventEntries = [
     ...queuedEventEntries,
     ...gmailEventEntries,
     ...repoEventEntries,
     ...githubEventEntries,
+    ...marketEventEntries,
   ];
   const turnSourceDeliveryContext = resolveSystemEventDeliveryContext(queuedEventEntries);
   const hasTaggedCronEvents = pendingEventEntries.some((event) =>
