@@ -218,7 +218,45 @@ Telegram public channel — deployed on VPS r31.
 ## Current Gap
 
 - Phase 6 T6.2: Content quality loop (track Telegram view counts → trust telemetry)
-- Runtime repo push blocked by large binary files in node_modules (pre-existing issue)
+- Phase 8 C.1-C.6: Goal Origination From Memory (strategic initiator) ✅
+
+## Completed: Phase 8 C.1-C.6 (Goal Origination From Memory)
+
+Strategic initiator — OpenTrident now originates goals from memory patterns, not just reactions to attention signals.
+
+### C.1 — Memory Query Infrastructure ✅
+- `src/planner/memory-query.ts`: 4 query primitives
+  - `queryDecisions(domain?, lookbackDays, outcome?)` — planner rows filtered by domain/time/outcome
+  - `queryLastOccurrence(category, keyPattern)` — most recent memory entry matching pattern
+  - `queryFollowUps(triggerKey, withinDays)` — memory entries after a trigger
+  - `queryFrequency(category, keyPattern, lookbackDays)` — count + average interval
+
+### C.2 — Strategic Initiator Module ✅
+- `src/planner/strategic-initiator.ts`: 6 strategy detectors
+  - `detectReviewCadence` — overdue reviews by cadence comparison
+  - `detectDecisionDrift` — selected/approved planner rows with no follow-through
+  - `detectPatternBreak` — days where typical planner activity didn't occur
+  - `detectStaleCommitments` — memory entries with time-bound language that are stale
+  - `detectRelationshipGap` — stub (Brain relationship profiles not yet available)
+  - `detectMarketCadence` — market signals review gaps
+- `generateStrategicGoals()` — runs all 6 detectors in parallel, sorts by score, caches 6h
+
+### C.3 — Planner Inbox Wiring ✅
+- `src/planner/planner-inbox.ts`: `buildPlannerInbox` is now async, combines attention items + strategic goals, sorted by score
+- `src/planner/planner-orchestrator.ts`: `resolvePlannerDecision` updated to await the now-async inbox
+
+### C.4 — Strategic Intent + Trust Handling ✅
+- Strategic goals use `intent: "goal"` + `source: "strategic-initiator"` — tracked in `bySource["strategic-initiator"]` automatically
+- Strategic goals default to `surface_only` via `originatePlannerGoal` default case (never `send_reply`)
+
+### C.5 — Daily 9am Strategic Cycle ✅
+- `src/infra/heartbeat-runner.ts`: 9am gate clears strategic cache file, forcing fresh generation on first 9am heartbeat
+
+### C.6 — Strategic Goal Telegram UI + Remind-Me ✅
+- `src/planner/types.ts`: added `"deferred"` to `PlannerStateStatus`, `deferredUntil?: number` to `PlannerStateRow`
+- `src/planner/planner-state.ts`: `updatePlannerRow` supports `deferredUntil`
+- `src/planner/planner-approval-handler.ts`: "remind me in N days" reply handler sets deferred status
+- `src/planner/planner-recovery.ts`: deferred items re-surfaced when `deferredUntil` passes
 
 ## Next Move
 
@@ -230,11 +268,11 @@ Full roadmap: `ROADMAP.md`
 
 **Always use `scripts/deploy.sh`** — never raw docker commands.
 
-- VPS: `opentrident:2026.4.15-r102134` — healthy gateway + CLI (single-instance)
+- VPS: `opentrident:2026.4.15-r134636` — healthy gateway + CLI (single-instance)
 - Multi-instance: `opentrident:2026.4.14-r35` — coordinator + 2 workers on 18891/18892 (5 containers total)
 - Deploy script (`scripts/deploy.sh`): layer caching (no --no-cache), image retention (last 3 + latest), build cache prune after each deploy
-- GitHub runtime: `DomLynch/OpenTrident-runtime` `opentrident-prune` @ `6255c860`
-- GitHub identity: `DomLynch/OpenTrident` `main` @ `58212a9`
+- GitHub runtime: `DomLynch/OpenTrident-runtime` `opentrident-prune` @ `752d88fc`
+- GitHub identity: `DomLynch/OpenTrident` `main` @ `d2920da`
 - SSH key: `~/.ssh/binance_futures_tool` for `root@49.12.7.18`
 - Pre-commit hooks fail on VPS — use `git commit --no-verify`
 - Docker build requires `pnpm-lock.yaml` in build context
