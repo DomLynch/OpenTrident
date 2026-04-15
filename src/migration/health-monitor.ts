@@ -86,24 +86,27 @@ export async function checkTelegramBot(): Promise<HealthCheckResult["checks"]["t
 }
 
 export async function checkModelApi(): Promise<HealthCheckResult["checks"]["modelApi"]> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) return { ok: false, error: "OPENROUTER_API_KEY not set" };
+  const minimaxKey = process.env.MINIMAX_API_KEY;
+  const zaiKey = process.env.ZAI_API_KEY;
+  const apiKey = minimaxKey || zaiKey;
+  if (!apiKey) return { ok: false, error: "No AI API key configured" };
+  const provider = minimaxKey ? "minimax" : "zai";
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
-    const resp = await fetch("https://openrouter.ai/api/v1/models", {
+    const resp = await fetch("https://api.minimax.chat/v1/models", {
       headers: { Authorization: `Bearer ${apiKey}` },
       signal: controller.signal,
     });
     clearTimeout(timeout);
     const data = await resp.json() as { data?: unknown[] };
-    return { ok: resp.ok && Array.isArray(data.data), provider: "openrouter" };
+    return { ok: resp.ok, provider };
   } catch (err) {
-    return { ok: false, error: String(err) };
+    return { ok: false, provider, error: String(err) };
   }
 }
 
-export async function checkSslExpiry(hostname: string = "49.12.7.18"): Promise<HealthCheckResult["checks"]["sslExpiry"]> {
+export async function checkSslExpiry(hostname: string = "api.telegram.org"): Promise<HealthCheckResult["checks"]["sslExpiry"]> {
   return new Promise((resolve) => {
     const req = https.get(
       { hostname, port: 443, method: "GET", timeout: 5000 },
@@ -115,14 +118,14 @@ export async function checkSslExpiry(hostname: string = "49.12.7.18"): Promise<H
         }
         const expiryDate = new Date(cert.valid_to);
         const daysRemaining = Math.floor((expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-        resolve({ ok: daysRemaining > 7, daysRemaining });
+        resolve({ ok: daysRemaining > 7, daysRemaining, hostname });
         res.destroy();
       },
     );
-    req.on("error", (err) => resolve({ ok: false, error: String(err) }));
+    req.on("error", (err) => resolve({ ok: false, error: String(err), hostname }));
     req.on("timeout", () => {
       req.destroy();
-      resolve({ ok: false, error: "Connection timeout" });
+      resolve({ ok: false, error: "Connection timeout", hostname });
     });
   });
 }
