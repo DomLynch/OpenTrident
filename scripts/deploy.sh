@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
+export DOCKER_BUILDKIT=1
+
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.vps.yml}"
 COMPOSE_PROJECT="${COMPOSE_PROJECT:-opentrident}"
 RETENTION=3
