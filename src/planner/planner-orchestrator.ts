@@ -6,6 +6,7 @@ import { buildPlannerInbox } from "./planner-inbox.js";
 import { getTrustMetrics } from "./trust-telemetry.js";
 import { searchSessions } from "./memory-query.js";
 import { findPlaybooks, type Playbook } from "./playbook-manager.js";
+import { getDoctrine } from "./doctrine-manager.js";
 import { sanitizeEvidence, validateActionClass, validatePlannerDomain } from "./planner-security.js";
 import type { PlannerDecision, PlannerDecisionMode, PlannerItem } from "./types.js";
 
@@ -102,6 +103,15 @@ async function buildPromptBlock(params: {
     for (const s of params.similarSessions.slice(0, 3)) {
       const snippet = s.snippet.length > 120 ? `${s.snippet.slice(0, 119)}…` : s.snippet;
       lines.push(`- [${s.sessionKey}] ${s.title}: ${snippet}`);
+    }
+  }
+
+  const doctrine = await getDoctrine(decision.goal.domain).catch(() => []);
+  if (doctrine.length > 0) {
+    lines.push("");
+    lines.push("Doctrine (always applies — treat as operating principle):");
+    for (const d of doctrine) {
+      lines.push(`- ${d.name}: ${d.procedureDigest}`);
     }
   }
 

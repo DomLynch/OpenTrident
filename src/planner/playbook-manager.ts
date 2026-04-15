@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { resolveStateDir } from "../config/paths.js";
 import { buildForkStateDir, getForkId } from "../multi/fork-isolation.js";
+import { promoteIfEligible } from "./doctrine-manager.js";
 
 const PLAYBOOK_DIR = "playbooks";
 
@@ -194,6 +195,7 @@ export async function recordPlaybookUse(params: {
 
   playbook.lastUsedAt = Date.now();
   await atomicWritePlaybookStore(stateDir, store);
+  promoteIfEligible(playbook).catch(() => {});
 }
 
 export async function getPlaybooks(params: {

@@ -1,5 +1,6 @@
 import { deliverOutboundPayloads } from "../../infra/outbound/deliver-runtime.js";
 import { buildOutboundSessionContext } from "../../infra/outbound/session-context.js";
+import { publishToNostr } from "../../social/nostr-publisher.js";
 import type { CommandHandler } from "./commands-types.js";
 import type { ReplyPayload } from "./types.js";
 
@@ -16,7 +17,7 @@ function parsePublishCommand(raw: string): { content: string } | null {
   return { content: rest };
 }
 
-async function sendToPublicChannel(content: string): Promise<PublishResult> {
+export async function sendToPublicChannel(content: string): Promise<PublishResult> {
   const channelId = process.env.TELEGRAM_PUBLIC_CHANNEL_ID;
   if (!channelId) {
     return { ok: false, error: "TELEGRAM_PUBLIC_CHANNEL_ID not configured" };
@@ -75,6 +76,8 @@ export const handlePublishCommand: CommandHandler = async (params) => {
   if (!result.ok) {
     return { shouldContinue: false, reply: { text: `Failed: ${result.error}` } };
   }
+
+  publishToNostr({ text: parsed.content, tags: [["t", "opentrident"]] }).catch(() => {});
 
   return {
     shouldContinue: false,

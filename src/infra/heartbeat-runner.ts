@@ -72,6 +72,7 @@ import {
 import { escapeRegExp } from "../utils.js";
 import { loadOrCreateDeviceIdentity } from "./device-identity.js";
 import { acquireLock, refreshLock, releaseLock, forceReleaseStaleLocks } from "../multi/instance-locks.js";
+import { generateSnapshot, publishSnapshotToGitHub, shouldSnapshot } from "../persistence/snapshot.js";
 import { formatErrorMessage, hasErrnoCode } from "./errors.js";
 import { isWithinActiveHours } from "./heartbeat-active-hours.js";
 import { buildHeartbeatAttentionPrompt } from "./heartbeat-attention.js";
@@ -1694,6 +1695,30 @@ Planner worker:
       indicatorType: visibility.useIndicator ? resolveIndicatorType("sent") : undefined,
     });
     await updateTaskTimestamps();
+    if (await shouldSnapshot().catch(() => false)) {
+      const { snapshot, bundlePath } = await generateSnapshot().catch(() => null);
+      if (snapshot) {
+        publishSnapshotToGitHub(bundlePath, snapshot.snapshotId).catch(() => {});
+      }
+    }
+    const now = new Date();
+    if (now.getDay() === 0 && now.getHours() === 18) {
+      const { generateWeeklyReportText, publishWeeklyReport } = await import("../planner/weekly-report.js");
+      const stateDir = resolveStateDir();
+      const lastReportFile = path.join(stateDir, "last-weekly-report-dow");
+      try {
+        const lastDow = parseInt(await fs.readFile(lastReportFile, "utf8").catch(() => "0"), 10);
+        if (lastDow !== now.getDate()) {
+          const report = await generateWeeklyReportText().catch(() => null);
+          if (report) {
+            await publishWeeklyReport(report).catch(() => {});
+          }
+          await fs.writeFile(lastReportFile, String(now.getDate()), "utf8").catch(() => {});
+        }
+      } catch {
+        // Skip weekly report
+      }
+    }
     return { status: "ran", durationMs: Date.now() - startedAt };
   } catch (err) {
     const reason = formatErrorMessage(err);
