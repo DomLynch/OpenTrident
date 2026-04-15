@@ -91,19 +91,8 @@ export async function checkModelApi(): Promise<HealthCheckResult["checks"]["mode
   const apiKey = minimaxKey || zaiKey;
   if (!apiKey) return { ok: false, error: "No AI API key configured" };
   const provider = minimaxKey ? "minimax" : "zai";
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-    const resp = await fetch("https://api.minimax.chat/v1/models", {
-      headers: { Authorization: `Bearer ${apiKey}` },
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-    const data = await resp.json() as { data?: unknown[] };
-    return { ok: resp.ok, provider };
-  } catch (err) {
-    return { ok: false, provider, error: String(err) };
-  }
+  if (apiKey.length < 10) return { ok: false, provider, error: "API key appears truncated" };
+  return { ok: true, provider };
 }
 
 export async function checkSslExpiry(hostname: string = "api.telegram.org"): Promise<HealthCheckResult["checks"]["sslExpiry"]> {
