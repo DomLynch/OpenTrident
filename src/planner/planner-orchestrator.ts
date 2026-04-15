@@ -158,7 +158,7 @@ export async function resolvePlannerDecision(params: {
   entry?: PlannerSessionEntry;
   pendingEvents?: readonly SystemEvent[];
 }): Promise<PlannerDecision> {
-  const candidates = buildPlannerInbox(params);
+  const candidates = await buildPlannerInbox(params);
   const topItem = selectTopPlannerCandidate(candidates);
   if (!topItem || topItem.score < 0.33) {
     return { mode: "idle", candidates };

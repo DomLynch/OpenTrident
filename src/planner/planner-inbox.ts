@@ -1,6 +1,7 @@
 import type { SessionEntry } from "../config/sessions/types.js";
 import { resolveHeartbeatAttention } from "../infra/heartbeat-attention.js";
 import type { SystemEvent } from "../infra/system-events.js";
+import { generateStrategicGoals } from "./strategic-initiator.js";
 import type { PlannerDomain, PlannerEnvelope, PlannerItem } from "./types.js";
 
 const SOURCE = "planner-inbox";
@@ -41,17 +42,18 @@ type PlannerInboxEntry = Pick<
   "updatedAt" | "lastChannel" | "lastTo" | "lastHeartbeatText" | "lastHeartbeatSentAt"
 >;
 
-export function buildPlannerInbox(params: {
+export async function buildPlannerInbox(params: {
   nowMs: number;
   entry?: PlannerInboxEntry;
   pendingEvents?: readonly SystemEvent[];
-}): PlannerItem[] {
+}): Promise<PlannerItem[]> {
   const attention = resolveHeartbeatAttention(params);
-  return attention.map((signal) => {
+  const strategic = await generateStrategicGoals();
+  const attentionItems = attention.map((signal) => {
     const evidence = (signal.evidence ?? []).map((line) => compactWhitespace(line)).filter(Boolean);
     return {
       id: signal.id,
-      intent: "attention",
+      intent: "attention" as const,
       domain: mapDomain(signal.id),
       score: signal.score,
       summary: compactWhitespace(signal.summary),
@@ -60,4 +62,5 @@ export function buildPlannerInbox(params: {
       envelope: buildEnvelope({ id: signal.id, summary: signal.summary, evidence }),
     } satisfies PlannerItem;
   });
+  return [...attentionItems, ...strategic].sort((a, b) => b.score - a.score);
 }
