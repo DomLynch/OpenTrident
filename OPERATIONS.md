@@ -70,9 +70,41 @@ sleep 15 && curl http://127.0.0.1:18889/healthz
 
 ### Current Image
 
+**Primary (VPS2 — 87.99.148.214):**
 ```
-opentrident:2026.4.15-r102134  — healthy (gateway + CLI running)
+opentrident:2026.4.15-r134636  — healthy (gateway + CLI running)
 opentrident:latest               — same as above
+```
+
+**Standby (VPS1 — 49.12.7.18):** All containers stopped. Ready for decommission.
+
+### Multi-Host Operations
+
+```bash
+# VPS1 (old, standby)
+VPS1_HOST="49.12.7.18"
+VPS2_HOST="87.99.148.214"
+SSH_KEY="~/.ssh/binance_futures_tool"
+
+# Check VPS2 (new primary) health
+ssh -i $SSH_KEY root@$VPS2_HOST "curl -s http://127.0.0.1:18889/healthz"
+
+# Check VPS1 (old standby) containers
+ssh -i $SSH_KEY root@$VPS1_HOST docker ps --format "{{.Names}}: {{.Status}}"
+
+# Start containers on VPS1 (if needed for rollback)
+ssh -i $SSH_KEY root@$VPS1_HOST "cd /opt/opentrident && docker compose -f docker-compose.vps.yml up -d"
+
+# Stop containers on VPS1 (before starting on VPS2 to avoid Telegram conflict)
+ssh -i $SSH_KEY root@$VPS1_HOST docker stop opentrident-gateway opentrident-cli
+
+# Transfer Docker image from VPS1 to VPS2
+ssh -i $SSH_KEY root@$VPS1_HOST "docker save opentrident:2026.4.15-r134636 -o /tmp/opentrident.tar"
+rsync -az -e "ssh -i $SSH_KEY" $VPS1_HOST:/tmp/opentrident.tar root@$VPS2_HOST:/tmp/
+ssh -i $SSH_KEY root@$VPS2_HOST "docker load -i /tmp/opentrident.tar"
+
+# RSync state files from VPS1 to VPS2
+rsync -az -e "ssh -i $SSH_KEY" $VPS1_HOST:/opt/opentrident-data/config/ root@$VPS2_HOST:/opt/opentrident-data/config/
 ```
 
 ## Troubleshooting

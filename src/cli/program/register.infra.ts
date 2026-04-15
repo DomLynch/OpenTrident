@@ -20,8 +20,8 @@ export function registerInfraCommand(program: Command) {
   infra
     .command("provision")
     .description("Provision a new VPS on Hetzner (dry-run by default)")
-    .option("--server-type <type>", "Server type (cx11/cx21/cx31/cx41/cx51)", "cx21")
-    .option("--location <location>", "Location (nbg1/fsn1/hel1/ash/hil)", "nbg1")
+    .option("--server-type <type>", "Server type (cpx11/cpx21/cpx31/cpx41/cpx51)", "cpx21")
+    .option("--location <location>", "Location (ash/hil/fsn1/hel1/sin)", "ash")
     .option("--dry-run", "Show provisioning plan without creating server", true)
     .option("--no-dry-run", "Actually provision the server (requires HETZNER_API_TOKEN)")
     .action(async (opts) => {
@@ -39,8 +39,8 @@ export function registerInfraCommand(program: Command) {
     .description("Execute full self-migration (generates manifest, provisions server, deploys, health checks)")
     .option("--reason <reason>", "Migration reason (disk-low/memory-high/gateway-failing/manual/test)", "test")
     .option("--target <provider>", "Target provider (hetzner/manual)", "manual")
-    .option("--server-type <type>", "Server type for hetzner (cx11/cx21/cx31/cx41/cx51)", "cx21")
-    .option("--location <location>", "Location for hetzner (nbg1/fsn1/hel1/ash/hil)", "nbg1")
+    .option("--server-type <type>", "Server type for hetzner (cpx11/cpx21/cpx31/cpx41/cpx51)", "cpx21")
+    .option("--location <location>", "Location for hetzner (ash/hil/fsn1/hel1/sin)", "ash")
     .option("--dry-run", "Show migration plan without executing", true)
     .option("--no-dry-run", "Actually execute migration (requires HETZNER_API_TOKEN)")
     .action(async (opts) => {

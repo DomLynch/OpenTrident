@@ -44,7 +44,7 @@ export async function executeMigration(params: {
   serverType?: string;
   location?: string;
 }): Promise<MigrationResult> {
-  const { reason, targetProvider, dryRun, serverType = "cx21", location = "nbg1" } = params;
+  const { reason, targetProvider, dryRun, serverType = "cpx21", location = "ash" } = params;
 
   const steps: MigrationStep[] = [
     { name: "generate_manifest", status: "pending" },

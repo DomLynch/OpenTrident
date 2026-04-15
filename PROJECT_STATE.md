@@ -258,9 +258,38 @@ Strategic initiator — OpenTrident now originates goals from memory patterns, n
 - `src/planner/planner-approval-handler.ts`: "remind me in N days" reply handler sets deferred status
 - `src/planner/planner-recovery.ts`: deferred items re-surfaced when `deferredUntil` passes
 
+## Completed: Move B B.1 (First Real Self-Migration)
+
+Supervised first migration — VPS1 (49.12.7.18) to VPS2 (87.99.148.214). Full migration log: `migration-log.md`.
+
+### What Was Done ✅
+- VPS2 provisioned (cpx21, Ashburn VA — nbg1 unavailable for cpx21)
+- SSH key injection via Hetzner rescue mode (cloud-init SSH injection failed)
+- Docker installed on VPS2
+- State files (4.1MB) rsynced from VPS1
+- Runtime repo (103MB) rsynced from VPS1
+- Docker image transferred as tar (640MB) from VPS1
+- Containers started on VPS2: gateway + CLI
+- Telegram conflict resolved: stopped VPS1 containers, VPS2 took over
+
+### Bugs Found During B.1
+1. `deploy_to_new_server` in migrate.ts is a stub (no actual transfer/deploy code)
+2. Server types were `cx*` (deprecated), updated to `cpx*`
+3. `nbg1` not available for cpx21, added `ash` and `hil` locations
+4. No `HETZNER_API_TOKEN` in .env before migration attempt
+5. Docker BuildKit not enabled by default (needed `DOCKER_BUILDKIT=1`)
+6. SSH key pre-configuration not working (HETZNER_SSH_KEY_FINGERPRINT not set)
+
+### B.1 Manual Steps Required
+- Hetzner rescue mode for shadow file fix + SSH key injection
+- `docker save` + rsync + `docker load` for image transfer
+- `docker stop` on old containers to resolve Telegram polling conflict
+
 ## Next Move
 
-Final audit complete. All T7 tasks (T7.1-T7.4) are deployed and verified working.
+- **Move B.2**: Fix B.1 bugs — implement `deploy_to_new_server`, add BuildKit env, update SSH key setup
+- **Move B.3**: Self-trigger wiring — health monitor → migration trigger in heartbeat
+- **Move B.4**: Parallel redundancy — leader election, two live instances
 
 Full roadmap: `ROADMAP.md`
 
@@ -268,14 +297,19 @@ Full roadmap: `ROADMAP.md`
 
 **Always use `scripts/deploy.sh`** — never raw docker commands.
 
-- VPS: `opentrident:2026.4.15-r134636` — healthy gateway + CLI (single-instance)
-- Multi-instance: `opentrident:2026.4.14-r35` — coordinator + 2 workers on 18891/18892 (5 containers total)
+**Primary (VPS2 — 87.99.148.214):**
+- `opentrident:2026.4.15-r134636` — gateway + CLI healthy
+- SSH: `~/.ssh/binance_futures_tool` root@87.99.148.214
+
+**Standby (VPS1 — 49.12.7.18):**
+- All containers stopped. Ready for decommission.
+- SSH: `~/.ssh/binance_futures_tool` root@49.12.7.18
+
 - Deploy script (`scripts/deploy.sh`): layer caching (no --no-cache), image retention (last 3 + latest), build cache prune after each deploy
-- GitHub runtime: `DomLynch/OpenTrident-runtime` `opentrident-prune` @ `752d88fc`
-- GitHub identity: `DomLynch/OpenTrident` `main` @ `d2920da`
-- SSH key: `~/.ssh/binance_futures_tool` for `root@49.12.7.18`
+- GitHub runtime: `DomLynch/OpenTrident-runtime` `opentrident-prune` @ `e22b01c2`
+- GitHub identity: `DomLynch/OpenTrident` `main` @ `bf225c6`
+- Docker build requires `DOCKER_BUILDKIT=1` on VPS
 - Pre-commit hooks fail on VPS — use `git commit --no-verify`
-- Docker build requires `pnpm-lock.yaml` in build context
 
 ## Health Check Fixes (AAA audit, 2026-04-15)
 

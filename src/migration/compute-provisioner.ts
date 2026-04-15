@@ -31,19 +31,20 @@ export type ProvisionParams = {
 };
 
 const SERVER_TYPES: Record<string, ServerType> = {
-  "cx11": { id: "cx11", name: "CX11", cores: 1, memory: 2, disk: 20, pricePerMonth: 3.89 },
-  "cx21": { id: "cx21", name: "CX21", cores: 2, memory: 4, disk: 40, pricePerMonth: 6.89 },
-  "cx31": { id: "cx31", name: "CX31", cores: 2, memory: 8, disk: 80, pricePerMonth: 11.89 },
-  "cx41": { id: "cx41", name: "CX41", cores: 4, memory: 16, disk: 160, pricePerMonth: 19.89 },
-  "cx51": { id: "cx51", name: "CX51", cores: 4, memory: 32, disk: 240, pricePerMonth: 39.89 },
+  "cpx11": { id: "cpx11", name: "CPX11", cores: 2, memory: 2, disk: 80, pricePerMonth: 4.19 },
+  "cpx21": { id: "cpx21", name: "CPX21", cores: 3, memory: 4, disk: 80, pricePerMonth: 10.99 },
+  "cpx31": { id: "cpx31", name: "CPX31", cores: 4, memory: 8, disk: 160, pricePerMonth: 19.99 },
+  "cpx41": { id: "cpx41", name: "CPX41", cores: 8, memory: 16, disk: 320, pricePerMonth: 39.99 },
+  "cpx51": { id: "cpx51", name: "CPX51", cores: 16, memory: 32, disk: 640, pricePerMonth: 79.99 },
 };
 
 const LOCATIONS: Record<string, string> = {
-  "nbg1": "Nuremberg 1 (Germany)",
-  "fsn1": "Falkenstein 1 (Germany)",
-  "hel1": "Helsinki 1 (Finland)",
-  "ash": "Ashburn, VA (USA)",
-  "hil": "Hill Country, TX (USA)",
+  "fsn1": "Falkenstein 1 (Germany) — deprecated",
+  "nbg1": "Nuremberg 1 (Germany) — deprecated (use ash or hil for cpx21)",
+  "hel1": "Helsinki 1 (Finland) — deprecated (use ash or hil for cpx21)",
+  "ash": "Ashburn, VA (USA) — recommended for cpx21",
+  "hil": "Hill Country, TX (USA) — recommended for cpx21",
+  "sin": "Singapore (APAC)",
 };
 
 const CLOUD_INIT = `#cloud-config
@@ -194,7 +195,7 @@ export async function decommissionServer(serverId: string): Promise<void> {
 }
 
 export async function provisionCommand(params: { serverType?: string; location?: string; dryRun?: boolean }): Promise<void> {
-  const { serverType = "cx21", location = "nbg1", dryRun = true } = params;
+  const { serverType = "cpx21", location = "ash", dryRun = true } = params;
 
   const servers = await listAvailableServers();
   const selected = servers.find((s) => s.id === serverType);
