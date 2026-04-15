@@ -315,7 +315,7 @@ Full roadmap: `ROADMAP.md`
 **Always use `scripts/deploy.sh`** — never raw docker commands.
 
 **Primary (VPS1 — 49.12.7.18):**
-- `opentrident:2026.4.15-r174041` — all containers healthy (gateway + CLI on vps.yml; coordinator + 2 workers on multi.yml)
+- `opentrident:2026.4.15-r194838` — all containers healthy (all 5 on same image: gateway + CLI on vps.yml; coordinator + 2 workers on multi.yml)
 - SSH: `~/.ssh/binance_futures_tool` root@49.12.7.18
 - Instance-locks verified: `telegram-bot` lock active
 
