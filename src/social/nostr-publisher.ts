@@ -1,5 +1,5 @@
 import { finalizeEvent, generateSecretKey, getPublicKey } from "nostr-tools/pure";
-import { nip19 } from "nostr-tools/nip19";
+import { npubEncode } from "nostr-tools/nip19";
 import { Relay } from "nostr-tools/relay";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -27,7 +27,7 @@ async function ensureNostrKey(): Promise<Uint8Array> {
 export async function getNostrPubkey(): Promise<{ hex: string; npub: string }> {
   const sk = await ensureNostrKey();
   const hex = getPublicKey(sk);
-  return { hex, npub: nip19.npubEncode(hex) };
+  return { hex, npub: npubEncode(hex) };
 }
 
 export async function publishToNostr(params: {
