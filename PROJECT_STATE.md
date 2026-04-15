@@ -287,9 +287,26 @@ Supervised first migration — VPS1 (49.12.7.18) to VPS2 (87.99.148.214). Full m
 
 ## Next Move
 
-- **Move B.2**: `deploy_to_new_server` implemented — remaining: SSH key pre-configuration via HETZNER_SSH_KEY_FINGERPRINT
+- **Move B.2**: `deploy_to_new_server` implemented with generic rsync state transfer + remote health check. Needs supervised real migration run (blocked: VPS2 SSH access lost)
 - **Move B.3**: Self-trigger wiring — health monitor → migration trigger in heartbeat
 - **Move B.4**: Parallel redundancy — leader election, two live instances
+
+## Task 9 AAA Audit (2026-04-15)
+
+**Verified working:**
+- Gateway: `{"ok":true,"status":"live"}` at 127.0.0.1:18889
+- Health check CLI: `openclaw health check` — all checks pass (Telegram, agents, session store)
+- Manifest generate: `openclaw manifest generate` — produces valid manifest with identity + state files
+- Migrate dry-run: 8 steps skip correctly
+- Trust telemetry: 6 total / 5 approved / 1 rejected (83% approval) — autonomous gate OPEN
+- Instance locks: `telegram-bot` lock held by coordinator
+
+**B.2 status:**
+- `deploy_to_new_server()`: implemented with Docker install, image save/load, generic rsync state, compose deploy, remote health check, finally cleanup
+- `composeFile` default: `docker-compose.vps.yml` (gateway+CLI, not multi)
+- Generic state rsync: `rsync -avz ${OPENTRIDENT_CONFIG_DIR}/ → newServer:${OPENTRIDENT_CONFIG_DIR}/`
+- Remote health check: `curl http://127.0.0.1:18889/healthz` over SSH against new server
+- Supervised migration run: blocked — VPS2 (87.99.148.214) SSH access lost (key mismatch)
 
 Full roadmap: `ROADMAP.md`
 
@@ -298,22 +315,20 @@ Full roadmap: `ROADMAP.md`
 **Always use `scripts/deploy.sh`** — never raw docker commands.
 
 **Primary (VPS1 — 49.12.7.18):**
-- `opentrident:2026.4.15-r162820` — all containers healthy (coordinator + 2 workers + gateway + CLI)
+- `opentrident:2026.4.15-r174041` — all containers healthy (gateway + CLI on vps.yml; coordinator + 2 workers on multi.yml)
 - SSH: `~/.ssh/binance_futures_tool` root@49.12.7.18
 - Instance-locks verified: `telegram-bot` lock active
 
-**VPS2 (87.99.148.214) — migration target, not yet primary:**
-- Docker installed but not fully configured (B.1 migration incomplete)
-- SSH: `~/.ssh/brain_backup_hetzner` root@100.97.248.77 (Tailscale) or 204.168.137.184
-- B.2 fixes needed: `deploy_to_new_server` stub, SSH key pre-config, docker-buildx automation
+**VPS2 (87.99.148.214) — migration target:**
+- Provisioned during B.1, SSH access blocked (key mismatch), needs rebuild to test B.2
 
 **Brain Backup VPS (100.97.248.77/204.168.137.184):**
 - Separate brain backup VPS, not OpenTrident runtime
 - SSH: `~/.ssh/brain_backup_hetzner` root@100.97.248.77
 
 - Deploy script (`scripts/deploy.sh`): layer caching (no --no-cache), image retention (last 3 + latest), build cache prune after each deploy
-- GitHub runtime: `DomLynch/OpenTrident-runtime` `opentrident-prune` @ `e22b01c2`
-- GitHub identity: `DomLynch/OpenTrident` `main` @ `cbb1460`
+- GitHub runtime: `DomLynch/OpenTrident-runtime` `opentrident-prune` @ `05deb708`
+- GitHub identity: `DomLynch/OpenTrident` `main` @ `fc611155`
 - Docker build requires `DOCKER_BUILDKIT=1` on VPS
 - Pre-commit hooks fail on VPS — use `git commit --no-verify`
 
