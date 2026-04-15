@@ -327,7 +327,7 @@ Full roadmap: `ROADMAP.md`
 - SSH: `~/.ssh/brain_backup_hetzner` root@100.97.248.77
 
 - Deploy script (`scripts/deploy.sh`): layer caching (no --no-cache), image retention (last 3 + latest), build cache prune after each deploy
-- GitHub runtime: `DomLynch/OpenTrident-runtime` `opentrident-prune` @ `05deb708`
+- GitHub runtime: `DomLynch/OpenTrident-runtime` `opentrident-prune` @ `41aabb15`
 - GitHub identity: `DomLynch/OpenTrident` `main` @ `fc611155`
 - Docker build requires `DOCKER_BUILDKIT=1` on VPS
 - Pre-commit hooks fail on VPS — use `git commit --no-verify`
