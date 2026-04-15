@@ -1,6 +1,7 @@
 import { recordActionOutcome } from "./trust-telemetry.js";
 import { adjustDomainAutonomy } from "./autonomy-ladder.js";
 import { updatePlannerRow } from "./planner-state.js";
+import { executeFlush } from "./planner-flush.js";
 import type { PlannerStateRow } from "./types.js";
 
 export type ApprovalResult =
@@ -97,4 +98,11 @@ export async function recordApprovalOutcome(params: {
       modified: result === "modified" ? 1 : 0,
     });
   }
+
+  await executeFlush({
+    trigger: "planner-row-close",
+    row,
+    outcome: result,
+    draftResult: params.content,
+  }).catch(() => {});
 }

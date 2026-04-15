@@ -71,6 +71,7 @@ import {
 } from "../shared/string-coerce.js";
 import { escapeRegExp } from "../utils.js";
 import { loadOrCreateDeviceIdentity } from "./device-identity.js";
+import { acquireLock, refreshLock, releaseLock } from "../multi/instance-locks.js";
 import { formatErrorMessage, hasErrnoCode } from "./errors.js";
 import { isWithinActiveHours } from "./heartbeat-active-hours.js";
 import { buildHeartbeatAttentionPrompt } from "./heartbeat-attention.js";
@@ -1847,6 +1848,7 @@ export function startHeartbeatRunner(opts: {
         reason: "disabled",
       } satisfies HeartbeatRunResult;
     }
+    await refreshLock({ scope: "telegram-bot" }).catch(() => {});
     if (!areHeartbeatsEnabled()) {
       return {
         status: "skipped",
@@ -1957,6 +1959,7 @@ export function startHeartbeatRunner(opts: {
       sessionKey: params.sessionKey,
     });
   const disposeWakeHandler = setHeartbeatWakeHandler(wakeHandler);
+  await acquireLock({ scope: "telegram-bot", forceStale: true }).catch(() => {});
   updateConfig(state.cfg);
 
   const cleanup = () => {
@@ -1964,6 +1967,7 @@ export function startHeartbeatRunner(opts: {
       return;
     }
     state.stopped = true;
+    releaseLock({ scope: "telegram-bot" }).catch(() => {});
     disposeWakeHandler();
     if (state.timer) {
       clearTimeout(state.timer);

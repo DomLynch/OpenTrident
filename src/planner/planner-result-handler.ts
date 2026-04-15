@@ -4,6 +4,7 @@ import { resolveStorePath } from "../config/sessions/paths.js";
 import { loadSessionStore } from "../config/sessions/store-load.js";
 import { updatePlannerRow } from "./planner-state.js";
 import { recordAutonomousAction } from "./autonomous-loop.js";
+import { executeFlush } from "./planner-flush.js";
 import type { PlannerStateRow } from "./types.js";
 
 const CHILD_COMPLETION_CHECK_WINDOW_MS = 30_000;
@@ -127,6 +128,19 @@ export async function handleWorkerResult(params: HandleWorkerResultParams): Prom
         : newStatus === "failed"
           ? "rejected"
           : "spawned",
+  }).catch(() => {});
+
+  await executeFlush({
+    trigger: "worker-complete",
+    row,
+    outcome: newStatus === "done"
+      ? "completed"
+      : newStatus === "awaiting_confirmation"
+        ? "approved"
+        : newStatus === "failed"
+          ? "failed"
+          : "rejected",
+    draftResult,
   }).catch(() => {});
 
   return { updated: true, newStatus, draftResult };

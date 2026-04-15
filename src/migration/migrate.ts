@@ -5,6 +5,7 @@ import { promisify } from "node:util";
 import { generateDeploymentManifest, saveManifest, type DeploymentManifest } from "./deployment-manifest.js";
 import { runHealthChecks, type HealthCheckResult } from "./health-monitor.js";
 import { provisionServer, checkServerReady, getServerIp, decommissionServer, type ProvisionParams } from "./compute-provisioner.js";
+import { executeFlush } from "../planner/planner-flush.js";
 
 const execAsync = promisify(exec);
 
@@ -137,6 +138,10 @@ export async function executeMigration(params: {
     steps[7].message = "Decommission old server after parallel run";
 
     result.success = true;
+
+    await executeFlush({
+      trigger: "migration-finish",
+    }).catch(() => {});
   } catch (err) {
     result.error = String(err);
     if (result.newServerId && targetProvider === "hetzner") {
