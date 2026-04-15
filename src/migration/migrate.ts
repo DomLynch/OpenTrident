@@ -124,24 +124,13 @@ export async function deployToNewServer(params: DeployToNewServerParams): Promis
     await sshi(`docker load -i /tmp/opentrident-image.tar`);
     await sshi(`rm /tmp/opentrident-image.tar`);
 
-    console.log(`[deploy] Copying state files to ${newServerIp}...`);
-    await sshi(`mkdir -p ${stateDir}`);
-
-    const stateManifest = await generateDeploymentManifest();
-    const stateFiles: [string, string][] = [
-      ["planner-v1.json", stateManifest.state.plannerState],
-      ["trust-telemetry-v1.json", stateManifest.state.trustTelemetry],
-      ["autonomy-config-v1.json", stateManifest.state.autonomyConfig],
-      ["memory-v1.json", stateManifest.state.memoryStore],
-      ["market-attention-v1.json", stateManifest.state.marketCache],
-      ["cost-ledger-v1.json", stateManifest.state.costLedger],
-    ];
-    for (const [fileName, content] of stateFiles) {
-      if (content && content !== "{}") {
-        const safeContent = content.replace(/'/g, "'\"'\"'");
-        await sshi(`cat > ${stateDir}/${fileName} << 'STATE_EOF'\n${safeContent}\nSTATE_EOF`);
-      }
-    }
+    console.log(`[deploy] Copying state directory to ${newServerIp}...`);
+    const stateHostDir = process.env.OPENTRIDENT_CONFIG_DIR ?? "/opt/opentrident-data/config";
+    await sshi(`mkdir -p "${stateHostDir}"`);
+    await execAsync(
+      `rsync -avz -e "ssh -i '${sshKeyPath}' -o StrictHostKeyChecking=no" ` +
+      `"${stateHostDir}/" ${sshUser}@${newServerIp}:"${stateHostDir}/"`
+    );
 
     console.log(`[deploy] Copying runtime to ${newServerIp}...`);
     await sshi(`mkdir -p ${runtimeDir}`);
