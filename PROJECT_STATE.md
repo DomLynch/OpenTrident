@@ -180,16 +180,35 @@ Telegram public channel — deployed on VPS r31.
 - `.env`: `TELEGRAM_PUBLIC_CHANNEL_ID` (set to placeholder `-1001234567890`, update to real channel ID)
 - Auth: `TELEGRAM_AUTHORIZED_USERS` env var controls who can use `/publish`
 
+## Completed: Phase 7 T7.1 (Deployment Manifest) ✅
+
+`openclaw manifest generate` — deployed on VPS r2842.
+
+- `src/migration/deployment-manifest.ts`: `generateDeploymentManifest`, `saveManifest`, `validateManifest`, `manifestGenerateCommand`
+- `src/cli/program/register.manifest.ts`: `registerManifestCommand` wired as `openclaw manifest generate`
+- Generates JSON manifest: identity files, runtime (dockerImage, composeFile, deployScript), state (planner, trust, memory, market), economic, infrastructure
+- Manifest saved to `/home/node/.opentrident/deployment-manifest.json`
+
+## Completed: Phase 7 T7.2 (Health Self-Monitoring) ✅
+
+`openclaw infra health-check` — deployed on VPS r2843.
+
+- `src/migration/health-monitor.ts`: health checks (gateway, disk, memory, Telegram, model API, SSL)
+- `src/cli/program/register.infra.ts`: `registerInfraCommand` wired as `openclaw infra health-check`
+- Migration trigger: disk < 10GB OR gateway failures
+- Results saved to `/home/node/.opentrident/health-check-v1.json`
+
 ## Current Gap
 
 - Phase 6 T6.2: Content quality loop (track Telegram view counts → trust telemetry)
-- Phase 7 T7.1-T7.4: Self-migration
+- Phase 7 T7.3: Hetzner Compute Provisioning (--dry-run only)
+- Phase 7 T7.4: Migration Execution (--dry-run only)
 
 ## Next Move
 
-Phase 6 T6.2: Content quality loop — wire Telegram view counts into trust telemetry to close the feedback loop.
+Phase 7 T7.3: Hetzner Compute Provisioner — build `src/migration/compute-provisioner.ts` with --dry-run flag.
 
-Remaining: T6.2 (content quality), T7.1-T7.4 (self-migration), full AAA audit.
+Remaining: T6.2 (content quality), T7.3-T7.4 (provisioning + migration), full AAA audit.
 
 Full roadmap: `ROADMAP.md`
 
@@ -197,11 +216,12 @@ Full roadmap: `ROADMAP.md`
 
 **Always use `scripts/deploy.sh`** — never raw docker commands.
 
-- VPS: `opentrident:2026.4.14-r34` — healthy gateway + healthy CLI (97GB free, 2 images)
+- VPS: `opentrident:2026.4.15-r002843` — healthy gateway + healthy CLI (single-instance)
+- Multi-instance: `opentrident:2026.4.14-r35` — coordinator + 2 workers on 18891/18892
 - Deploy script (`scripts/deploy.sh`): layer caching (no --no-cache), image retention (last 3 + latest), build cache prune after each deploy
-- node_modules removed from entire git history via `git-filter-repo` — .git 63MB (was 1.6GB+), git push to runtime repo now works cleanly
-- GitHub runtime: `DomLynch/OpenTrident-runtime` `opentrident-prune` @ `f2718f9f`
-- GitHub identity: `DomLynch/OpenTrident` `main` @ `136046c`
+- Runtime repo push blocked by large binary files in node_modules (pre-existing issue)
+- GitHub runtime: `DomLynch/OpenTrident-runtime` `opentrident-prune` @ `d68699a5` (T4 pushed; T5+ blocked by large files)
+- GitHub identity: `DomLynch/OpenTrident` `main` @ `14f5350`
 - SSH key: `~/.ssh/binance_futures_tool` for `root@49.12.7.18`
 - Pre-commit hooks fail on VPS — use `git commit --no-verify`
 - Docker build requires `pnpm-lock.yaml` in build context
