@@ -667,7 +667,7 @@ type HeartbeatPromptResolution = {
   prompt: string | null;
   hasExecCompletion: boolean;
   hasCronEvents: boolean;
-  plannerDecision?: ReturnType<typeof resolvePlannerDecision>;
+  plannerDecision?: Awaited<ReturnType<typeof resolvePlannerDecision>>;
 };
 
 function appendHeartbeatWorkspacePathHint(prompt: string, workspaceDir: string): string {

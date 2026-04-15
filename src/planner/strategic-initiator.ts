@@ -172,7 +172,7 @@ async function generateFreshGoals(): Promise<readonly PlannerItem[]> {
     .sort((a, b) => b.score - a.score);
 }
 
-async function loadStrategicCache(): Promise<{ goals: PlannerItem[]; generatedAt: number } | null> {
+async function loadStrategicCache(): Promise<{ goals: readonly PlannerItem[]; generatedAt: number } | null> {
   const filePath = path.join(resolveStateDir(), STRATEGIC_CACHE_FILE);
   try {
     const raw = await fs.readFile(filePath, "utf8");
@@ -188,13 +188,13 @@ async function saveStrategicCache(goals: PlannerItem[]): Promise<void> {
   await fs.writeFile(filePath, JSON.stringify({ goals, generatedAt: Date.now() }, null, 2), "utf8");
 }
 
-export async function generateStrategicGoals(): Promise<PlannerItem[]> {
+export async function generateStrategicGoals(): Promise<readonly PlannerItem[]> {
   const cache = await loadStrategicCache();
   const nowMs = Date.now();
   if (cache && nowMs - cache.generatedAt < STRATEGIC_CACHE_TTL_MS) {
     return cache.goals;
   }
   const goals = await generateFreshGoals();
-  await saveStrategicCache(goals);
+  await saveStrategicCache([...goals]);
   return goals;
 }

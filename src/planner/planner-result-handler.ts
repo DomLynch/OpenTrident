@@ -95,7 +95,6 @@ export async function handleWorkerResult(params: HandleWorkerResultParams): Prom
   let newStatus: PlannerStateRow["status"];
   let patch: Parameters<typeof updatePlannerRow>[0]["patch"] = {
     draftResult,
-    updatedAt: nowMs,
   };
 
   if (snapshot.status === "failed" || snapshot.status === "timeout") {

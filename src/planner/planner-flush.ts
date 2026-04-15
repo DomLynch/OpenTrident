@@ -138,7 +138,7 @@ export async function executeFlush(params: FlushContext): Promise<{
     const domainRate = trustMetrics.byDomain[params.row.domain ?? "general"];
     const approvalRate = domainRate ? domainRate.approved / Math.max(domainRate.total, 1) : 0.8;
 
-    const sourceItemId = params.row.source === "strategic-initiator" ? params.row.id : undefined;
+    const sourceItemId = params.row.sourceItemId === params.row.id ? params.row.id : undefined;
 
     const playbook = await createPlaybook({
       name: `[${params.row.domain ?? "general"}] ${params.row.title ?? "Untitled"}`.slice(0, 80),
@@ -147,7 +147,7 @@ export async function executeFlush(params: FlushContext): Promise<{
       triggers: [
         { type: "domain", value: params.row.domain ?? "general" },
         { type: "action-class", value: params.row.actionClass ?? "spawn_readonly" },
-        { type: "source", value: params.row.source ?? "planner" },
+        { type: "source", value: params.row.sourceItemId ? "child-item" : "planner" },
       ],
       procedure: params.draftResult?.slice(0, 2000) ?? params.row.summary ?? "No procedure recorded",
       sourceItemId,
