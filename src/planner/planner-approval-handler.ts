@@ -127,6 +127,27 @@ export async function checkAndHandleApproval(params: {
 
   const parsed = parseApprovalResponse(params.inboundText);
   if (!parsed) {
+    const remindMatch = params.inboundText.match(/remind\s+me\s+(?:in\s+)?(.+)/i);
+    if (remindMatch) {
+      let days = 1;
+      const unit = remindMatch[1].toLowerCase();
+      const numMatch = unit.match(/(\d+)/);
+      if (numMatch) {
+        days = parseInt(numMatch[1], 10);
+      } else if (unit.includes("tomorrow")) {
+        days = 1;
+      } else if (unit.includes("week")) {
+        days = 7;
+      }
+      const deferredUntil = params.nowMs + days * 86_400_000;
+      await updatePlannerRow({
+        sessionKey: params.sessionKey,
+        rowId: pendingRow.id,
+        nowMs: params.nowMs,
+        patch: { status: "deferred", deferredUntil, note: `Deferred ${days}d: remind me in ${remindMatch[1]}` },
+      });
+      return { handled: true, approved: false, message: `⏰ Reminder set for ${days === 1 ? "tomorrow" : `in ${days} days`}.` };
+    }
     return { handled: false };
   }
 

@@ -35,6 +35,7 @@ import {
   resolveAgentMainSessionKey,
 } from "../config/sessions/main-session.js";
 import { resolveStorePath } from "../config/sessions/paths.js";
+import { resolveStateDir } from "../config/paths.js";
 import { loadSessionStore } from "../config/sessions/store-load.js";
 import {
   archiveRemovedSessionTranscripts,
@@ -48,6 +49,7 @@ import { resolvePlannerDecision } from "../planner/planner-orchestrator.js";
 import { resolvePlannerRecoveryActions } from "../planner/planner-recovery.js";
 import { spawnPlannerReadonlyTask } from "../planner/planner-spawn.js";
 import { readPlannerRows, recordPlannerDecision, updatePlannerRow } from "../planner/planner-state.js";
+import { generateStrategicGoals } from "../planner/strategic-initiator.js";
 import { buildMemoryContext } from "../planner/planner-memory.js";
 import { buildCostContext } from "../economic/cost-ledger.js";
 import { buildEconomicContext as buildWalletContext } from "../economic/wallet.js";
@@ -975,6 +977,17 @@ export async function runHeartbeatOnce(opts: {
   const canRelayToUser = Boolean(
     delivery.channel !== "none" && delivery.to && visibility.showAlerts,
   );
+
+  const hour = new Date(startedAt).getHours();
+  if (hour === 9) {
+    const strategicCachePath = path.join(resolveStateDir(), "strategic-goals-v1.json");
+    try {
+      await fs.unlink(strategicCachePath);
+    } catch {
+      // No cache to clear
+    }
+  }
+
   const workspaceDir = resolveAgentWorkspaceDir(cfg, agentId);
   let { prompt, hasExecCompletion, hasCronEvents, plannerDecision } =
     await resolveHeartbeatRunPrompt({

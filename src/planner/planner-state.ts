@@ -86,7 +86,7 @@ export async function updatePlannerRow(params: {
   rowId: string;
   nowMs: number;
   stateDir?: string;
-  patch: Partial<Pick<PlannerStateRow, "status" | "summary" | "evidence" | "childSessionKey" | "runId" | "note" | "draftResult" | "confirmedAt" | "sentAt" | "retryCount" | "downgradedFrom">>;
+  patch: Partial<Pick<PlannerStateRow, "status" | "summary" | "evidence" | "childSessionKey" | "runId" | "note" | "draftResult" | "confirmedAt" | "sentAt" | "retryCount" | "downgradedFrom" | "deferredUntil">>;
 }): Promise<PlannerStateRow | undefined> {
   const stateDir = params.stateDir ?? resolveStateDir();
   const filePath = path.join(stateDir, STATE_FILENAME);

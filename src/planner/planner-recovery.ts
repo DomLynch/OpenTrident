@@ -107,6 +107,17 @@ export function resolvePlannerRecoveryActions(params: {
       }
       continue;
     }
+
+    if (row.status === "deferred") {
+      if (row.deferredUntil && params.nowMs >= row.deferredUntil) {
+        actions.push({
+          rowId: row.id,
+          action: "escalate",
+          reason: `deferred reminder expired, re-surfacing for review`,
+        });
+      }
+      continue;
+    }
   }
 
   return actions;

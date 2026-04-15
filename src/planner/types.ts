@@ -71,7 +71,8 @@ export type PlannerStateStatus =
   | "awaiting_confirmation"
   | "approved"
   | "rejected"
-  | "modified";
+  | "modified"
+  | "deferred";
 
 export type PlannerStateRow = {
   id: string;
@@ -96,4 +97,5 @@ export type PlannerStateRow = {
   sentAt?: number;
   retryCount?: number;
   downgradedFrom?: PlannerActionClass;
+  deferredUntil?: number;
 };
