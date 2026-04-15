@@ -66,6 +66,8 @@ export interface DeployToNewServerParams {
   stateDir?: string;
   composeFile?: string;
   envFile?: string;
+  runtimeDir?: string;
+  healthCheckPort?: number;
 }
 
 export async function deployToNewServer(params: DeployToNewServerParams): Promise<void> {
@@ -75,65 +77,117 @@ export async function deployToNewServer(params: DeployToNewServerParams): Promis
     sshUser = "root",
     imageName = "opentrident:latest",
     stateDir = "/opt/opentrident-data",
-    composeFile = "docker-compose.multi.yml",
+    composeFile = "docker-compose.vps.yml",
     envFile = ".env",
+    runtimeDir = "/opt/opentrident",
+    healthCheckPort = 18889,
   } = params;
 
   const ssh = (cmd: string) => sshExec(sshKeyPath, sshUser, newServerIp, cmd);
   const sshi = (cmd: string) => sshExecInteractive(sshKeyPath, sshUser, newServerIp, cmd);
 
-  console.log(`[deploy] Installing Docker on ${newServerIp}...`);
-  await sshi(`curl -fsSL https://get.docker.com | sh`);
-  await sshi(`systemctl enable docker`);
-  await sshi(`update-alternatives --set iptables /usr/sbin/iptables-legacy || true`);
-  await sshi(`update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy || true`);
-  await sshi(`systemctl start docker`);
-  await sshi(`systemctl status docker --no-pager || true`);
-
-  console.log(`[deploy] Installing docker-compose on ${newServerIp}...`);
-  await sshi(`curl -L "https://github.com/docker/compose/releases/download/v2.24.0/docker-compose-linux-x86_64" -o /usr/local/bin/docker-compose && chmod +x /usr/local/bin/docker-compose`);
-
-  const localTmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "opentrident-migrate-"));
-  const imageTar = path.join(localTmpDir, "opentrident-image.tar");
-
-  console.log(`[deploy] Saving Docker image ${imageName}...`);
-  await execAsync(`docker save ${imageName} -o "${imageTar}"`);
-
-  console.log(`[deploy] Copying image to ${newServerIp}...`);
-  await execAsync(`ssh -i "${sshKeyPath}" -o StrictHostKeyChecking=no ${sshUser}@${newServerIp} "mkdir -p /tmp"`);
-  await execAsync(`scp -i "${sshKeyPath}" -o StrictHostKeyChecking=no "${imageTar}" ${sshUser}@${newServerIp}:/tmp/opentrident-image.tar`);
-
-  console.log(`[deploy] Loading Docker image on ${newServerIp}...`);
-  await sshi(`docker load -i /tmp/opentrident-image.tar`);
-  await sshi(`rm /tmp/opentrident-image.tar`);
-
-  console.log(`[deploy] Copying state files to ${newServerIp}...`);
-  await sshi(`mkdir -p ${stateDir}`);
-  await sshi(`mkdir -p /opt/opentrident`);
-
-  const stateManifest = await generateDeploymentManifest();
-  for (const [filePath, fileInfo] of Object.entries(stateManifest.state)) {
-    if (fileInfo.type === "file") {
-      const localPath = filePath;
-      const remotePath = `${stateDir}/${path.basename(filePath)}`;
-      await execAsync(`scp -i "${sshKeyPath}" -o StrictHostKeyChecking=no "${localPath}" ${sshUser}@${newServerIp}:${remotePath}`);
-    }
+  let localTmpDir: string;
+  try {
+    localTmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "opentrident-migrate-"));
+  } catch {
+    localTmpDir = "";
   }
 
-  const composeContent = await fs.readFile(composeFile, "utf-8");
-  await sshi(`mkdir -p /opt/opentrident && cat > /opt/opentrident/${composeFile} << 'COMPOSE_EOF'\n${composeContent}\nCOMPOSE_EOF`);
+  const cleanup = () => {
+    if (localTmpDir) {
+      fs.rm(localTmpDir, { recursive: true, force: true }).catch(() => {});
+    }
+  };
 
-  const envContent = await fs.readFile(envFile, "utf-8");
-  await sshi(`cat > /opt/opentrident/${envFile} << 'ENV_EOF'\n${envContent}\nENV_EOF`);
+  try {
+    console.log(`[deploy] Installing Docker on ${newServerIp}...`);
+    await sshi(`curl -fsSL https://get.docker.com | sh`);
+    await sshi(`systemctl enable docker`);
+    await sshi(`update-alternatives --set iptables /usr/sbin/iptables-legacy || true`);
+    await sshi(`update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy || true`);
+    await sshi(`systemctl start docker`);
+    await sshi(`systemctl status docker --no-pager || true`);
 
-  await sshi(`grep -q 'DOCKER_BUILDKIT=1' /opt/opentrident/${envFile} || echo 'DOCKER_BUILDKIT=1' >> /opt/opentrident/${envFile}`);
-  await sshi(`grep -q 'OPENTRIDENT_IMAGE=' /opt/opentrident/${envFile} || echo 'OPENTRIDENT_IMAGE=${imageName}' >> /opt/opentrident/${envFile}`);
+    console.log(`[deploy] Installing docker-compose on ${newServerIp}...`);
+    await sshi(`curl -L "https://github.com/docker/compose/releases/download/v2.24.0/docker-compose-linux-x86_64" -o /usr/local/bin/docker-compose && chmod +x /usr/local/bin/docker-compose`);
 
-  console.log(`[deploy] Starting containers on ${newServerIp}...`);
-  await sshi(`cd /opt/opentrident && DOCKER_BUILDKIT=1 docker compose -f ${composeFile} up -d`);
+    const imageTar = path.join(localTmpDir, "opentrident-image.tar");
 
-  await fs.rm(localTmpDir, { recursive: true, force: true });
-  console.log(`[deploy] Deployment to ${newServerIp} complete`);
+    console.log(`[deploy] Saving Docker image ${imageName}...`);
+    await execAsync(`docker save ${imageName} -o "${imageTar}"`);
+
+    console.log(`[deploy] Copying image to ${newServerIp}...`);
+    await sshi(`mkdir -p /tmp`);
+    await execAsync(`scp -i "${sshKeyPath}" -o StrictHostKeyChecking=no "${imageTar}" ${sshUser}@${newServerIp}:/tmp/opentrident-image.tar`);
+
+    console.log(`[deploy] Loading Docker image on ${newServerIp}...`);
+    await sshi(`docker load -i /tmp/opentrident-image.tar`);
+    await sshi(`rm /tmp/opentrident-image.tar`);
+
+    console.log(`[deploy] Copying state files to ${newServerIp}...`);
+    await sshi(`mkdir -p ${stateDir}`);
+
+    const stateManifest = await generateDeploymentManifest();
+    const stateFiles: [string, string][] = [
+      ["planner-v1.json", stateManifest.state.plannerState],
+      ["trust-telemetry-v1.json", stateManifest.state.trustTelemetry],
+      ["autonomy-config-v1.json", stateManifest.state.autonomyConfig],
+      ["memory-v1.json", stateManifest.state.memoryStore],
+      ["market-attention-v1.json", stateManifest.state.marketCache],
+      ["cost-ledger-v1.json", stateManifest.state.costLedger],
+    ];
+    for (const [fileName, content] of stateFiles) {
+      if (content && content !== "{}") {
+        const safeContent = content.replace(/'/g, "'\"'\"'");
+        await sshi(`cat > ${stateDir}/${fileName} << 'STATE_EOF'\n${safeContent}\nSTATE_EOF`);
+      }
+    }
+
+    console.log(`[deploy] Copying runtime to ${newServerIp}...`);
+    await sshi(`mkdir -p ${runtimeDir}`);
+    await execAsync(
+      `rsync -avz -e "ssh -i '${sshKeyPath}' -o StrictHostKeyChecking=no" ` +
+      `--exclude='.git' --exclude='node_modules' --exclude='dist' --exclude='*.log' ` +
+      `--exclude='.env' --exclude='*.tar' --exclude='.DS_Store' ` +
+      `"./" ${sshUser}@${newServerIp}:${runtimeDir}/`
+    );
+
+    const composeContent = await fs.readFile(composeFile, "utf-8");
+    await sshi(`mkdir -p ${runtimeDir} && cat > ${runtimeDir}/${path.basename(composeFile)} << 'COMPOSE_EOF'\n${composeContent}\nCOMPOSE_EOF`);
+
+    const envContent = await fs.readFile(envFile, "utf-8");
+    await sshi(`cat > ${runtimeDir}/${envFile} << 'ENV_EOF'\n${envContent}\nENV_EOF`);
+
+    await sshi(`grep -q 'DOCKER_BUILDKIT=1' ${runtimeDir}/${envFile} || echo 'DOCKER_BUILDKIT=1' >> ${runtimeDir}/${envFile}`);
+    await sshi(`grep -q 'OPENTRIDENT_IMAGE=' ${runtimeDir}/${envFile} || echo 'OPENTRIDENT_IMAGE=${imageName}' >> ${runtimeDir}/${envFile}`);
+
+    console.log(`[deploy] Starting containers on ${newServerIp}...`);
+    await sshi(`cd ${runtimeDir} && DOCKER_BUILDKIT=1 docker compose -f ${path.basename(composeFile)} up -d`);
+
+    console.log(`[deploy] Waiting for gateway to be ready on ${newServerIp}...`);
+    let healthOk = false;
+    for (let i = 0; i < 30; i++) {
+      await new Promise(r => setTimeout(r, 2000));
+      try {
+        const result = await ssh(`curl -sf http://127.0.0.1:${healthCheckPort}/healthz`);
+        if (result.includes('"ok":true') || result.includes('"status":"live"')) {
+          healthOk = true;
+          console.log(`[deploy] Gateway healthy after ${(i + 1) * 2}s`);
+          break;
+        }
+      } catch {
+        // not ready yet
+      }
+    }
+    if (!healthOk) {
+      throw new Error(`Gateway failed to become healthy on ${newServerIp} after 60s`);
+    }
+
+    cleanup();
+    console.log(`[deploy] Deployment to ${newServerIp} complete and verified`);
+  } finally {
+    cleanup();
+  }
 }
 
 export async function executeMigration(params: {
@@ -227,11 +281,14 @@ export async function executeMigration(params: {
     }
 
     await executeStep(steps[4], async () => {
-      const health = await runHealthChecks();
-      if (!health.overallHealthy) {
-        throw new Error(`New server health checks failed`);
+      if (!result.newServerIp) throw new Error("No new server IP");
+      const sshKeyPath = process.env.SSH_KEY_PATH ?? `${os.homedir()}/.ssh/binance_futures_tool`;
+      const healthResult = await sshExec(sshKeyPath, "root", result.newServerIp,
+        `curl -sf http://127.0.0.1:18889/healthz || curl -sf http://127.0.0.1:18891/health`);
+      if (!healthResult.includes('"ok":true') && !healthResult.includes('"status":"live"')) {
+        throw new Error(`New server health check failed: ${healthResult}`);
       }
-      steps[4].message = "New server healthy";
+      steps[4].message = `New server healthy: ${healthResult}`;
     });
 
     steps[5].status = "skipped";
