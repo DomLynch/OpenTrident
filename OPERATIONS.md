@@ -14,10 +14,6 @@ export SSH_KEY_PATH="~/.ssh/binance_futures_tool"
 # Check gateway health
 curl http://127.0.0.1:18889/healthz
 
-```bash
-# Check gateway health
-curl http://127.0.0.1:18889/healthz
-
 # View running containers
 docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
 
