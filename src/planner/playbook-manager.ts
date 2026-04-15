@@ -210,8 +210,8 @@ export async function getPlaybookStats(stateDir?: string): Promise<{
   bySource: Record<string, number>;
   avgSuccessRate: number;
 }> {
-  const stateDir = stateDir ?? resolveStateDir();
-  const store = await loadStore(stateDir);
+  const resolvedStateDir = stateDir ?? resolveStateDir();
+  const store = await loadStore(resolvedStateDir);
   const playbooks = Object.values(store.playbooks);
 
   const byCategory: Record<PlaybookCategory, number> = {

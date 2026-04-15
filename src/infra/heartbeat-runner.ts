@@ -1959,7 +1959,7 @@ export function startHeartbeatRunner(opts: {
       sessionKey: params.sessionKey,
     });
   const disposeWakeHandler = setHeartbeatWakeHandler(wakeHandler);
-  await acquireLock({ scope: "telegram-bot", forceStale: true }).catch(() => {});
+  (async () => { await acquireLock({ scope: "telegram-bot", forceStale: true }).catch(() => {}); })();
   updateConfig(state.cfg);
 
   const cleanup = () => {
