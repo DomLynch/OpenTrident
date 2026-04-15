@@ -297,17 +297,23 @@ Full roadmap: `ROADMAP.md`
 
 **Always use `scripts/deploy.sh`** — never raw docker commands.
 
-**Primary (VPS2 — 87.99.148.214):**
-- `opentrident:2026.4.15-r134636` — gateway + CLI healthy
-- SSH: `~/.ssh/binance_futures_tool` root@87.99.148.214
-
-**Standby (VPS1 — 49.12.7.18):**
-- All containers stopped. Ready for decommission.
+**Primary (VPS1 — 49.12.7.18):**
+- `opentrident:2026.4.15-r162820` — all containers healthy (coordinator + 2 workers + gateway + CLI)
 - SSH: `~/.ssh/binance_futures_tool` root@49.12.7.18
+- Instance-locks verified: `telegram-bot` lock active
+
+**VPS2 (87.99.148.214) — migration target, not yet primary:**
+- Docker installed but not fully configured (B.1 migration incomplete)
+- SSH: `~/.ssh/brain_backup_hetzner` root@100.97.248.77 (Tailscale) or 204.168.137.184
+- B.2 fixes needed: `deploy_to_new_server` stub, SSH key pre-config, docker-buildx automation
+
+**Brain Backup VPS (100.97.248.77/204.168.137.184):**
+- Separate brain backup VPS, not OpenTrident runtime
+- SSH: `~/.ssh/brain_backup_hetzner` root@100.97.248.77
 
 - Deploy script (`scripts/deploy.sh`): layer caching (no --no-cache), image retention (last 3 + latest), build cache prune after each deploy
 - GitHub runtime: `DomLynch/OpenTrident-runtime` `opentrident-prune` @ `e22b01c2`
-- GitHub identity: `DomLynch/OpenTrident` `main` @ `bf225c6`
+- GitHub identity: `DomLynch/OpenTrident` `main` @ `cbb1460`
 - Docker build requires `DOCKER_BUILDKIT=1` on VPS
 - Pre-commit hooks fail on VPS — use `git commit --no-verify`
 
