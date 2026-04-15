@@ -2,11 +2,17 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { resolveStateDir } from "../config/paths.js";
 import { retryAsync } from "../infra/retry.js";
+import { buildForkStateDir, getForkId } from "../multi/fork-isolation.js";
 import type { PlannerDecision, PlannerStateRow, PlannerStateStatus } from "./types.js";
 
 const STATE_FILENAME = "planner-v1.json";
 const MAX_ROWS_PER_SESSION = 20;
 const FILE_RETRY_CONFIG = { attempts: 3, minDelayMs: 100, maxDelayMs: 2000, jitter: 0.1 };
+
+function resolveForkStateDir(stateDir?: string): string {
+  const base = stateDir ?? resolveStateDir();
+  return buildForkStateDir(base, getForkId());
+}
 
 type PlannerStateFile = {
   sessions: Record<string, PlannerStateRow[]>;
@@ -54,7 +60,7 @@ export async function recordPlannerDecision(params: {
   if (!params.decision.goal || !params.decision.topItem) {
     return undefined;
   }
-  const stateDir = params.stateDir ?? resolveStateDir();
+  const stateDir = resolveForkStateDir(params.stateDir);
   const filePath = path.join(stateDir, STATE_FILENAME);
   const state = await loadPlannerStateFrom(filePath);
   const row: PlannerStateRow = {
@@ -88,7 +94,7 @@ export async function updatePlannerRow(params: {
   stateDir?: string;
   patch: Partial<Pick<PlannerStateRow, "status" | "summary" | "evidence" | "childSessionKey" | "runId" | "note" | "draftResult" | "confirmedAt" | "sentAt" | "retryCount" | "downgradedFrom" | "deferredUntil">>;
 }): Promise<PlannerStateRow | undefined> {
-  const stateDir = params.stateDir ?? resolveStateDir();
+  const stateDir = resolveForkStateDir(params.stateDir);
   const filePath = path.join(stateDir, STATE_FILENAME);
   const state = await loadPlannerStateFrom(filePath);
   const rows = state.sessions[params.sessionKey] ?? [];
@@ -112,7 +118,7 @@ export async function readPlannerRows(params: {
   sessionKey: string;
   stateDir?: string;
 }): Promise<readonly PlannerStateRow[]> {
-  const stateDir = params.stateDir ?? resolveStateDir();
+  const stateDir = resolveForkStateDir(params.stateDir);
   const filePath = path.join(stateDir, STATE_FILENAME);
   const state = await loadPlannerStateFrom(filePath);
   return state.sessions[params.sessionKey] ?? [];

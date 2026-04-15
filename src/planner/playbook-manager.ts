@@ -1,8 +1,14 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { resolveStateDir } from "../config/paths.js";
+import { buildForkStateDir, getForkId } from "../multi/fork-isolation.js";
 
 const PLAYBOOK_DIR = "playbooks";
+
+function resolveForkStateDir(stateDir?: string): string {
+  const base = stateDir ?? resolveStateDir();
+  return buildForkStateDir(base, getForkId());
+}
 
 const THREAT_PATTERNS: Array<{
   pattern: RegExp;
@@ -131,7 +137,7 @@ export async function createPlaybook(params: {
   tags?: string[];
   stateDir?: string;
 }): Promise<{ playbook: Playbook | null; blockedReason?: string }> {
-  const stateDir = params.stateDir ?? resolveStateDir();
+  const stateDir = resolveForkStateDir(params.stateDir);
   const procedure = params.procedure.trim();
 
   if (
@@ -174,7 +180,7 @@ export async function recordPlaybookUse(params: {
   success: boolean;
   stateDir?: string;
 }): Promise<void> {
-  const stateDir = params.stateDir ?? resolveStateDir();
+  const stateDir = resolveForkStateDir(params.stateDir);
   const store = await loadStore(stateDir);
   const playbook = store.playbooks[params.playbookId];
 
@@ -195,7 +201,7 @@ export async function getPlaybooks(params: {
   tag?: string;
   stateDir?: string;
 }): Promise<Playbook[]> {
-  const stateDir = params.stateDir ?? resolveStateDir();
+  const stateDir = resolveForkStateDir(params.stateDir);
   const store = await loadStore(stateDir);
   let playbooks = Object.values(store.playbooks);
 
@@ -221,7 +227,7 @@ export async function findPlaybooks(params: {
   keyword?: string;
   stateDir?: string;
 }): Promise<Playbook[]> {
-  const stateDir = params.stateDir ?? resolveStateDir();
+  const stateDir = resolveForkStateDir(params.stateDir);
   const store = await loadStore(stateDir);
   const all = Object.values(store.playbooks);
 
@@ -245,7 +251,7 @@ export async function updatePlaybook(params: {
   patch: Partial<Pick<Playbook, "name" | "description" | "procedure" | "tags">>;
   stateDir?: string;
 }): Promise<{ updated: boolean; blockedReason?: string }> {
-  const stateDir = params.stateDir ?? resolveStateDir();
+  const stateDir = resolveForkStateDir(params.stateDir);
   const store = await loadStore(stateDir);
   const playbook = store.playbooks[params.playbookId];
 
@@ -272,7 +278,7 @@ export async function deletePlaybook(params: {
   playbookId: string;
   stateDir?: string;
 }): Promise<boolean> {
-  const stateDir = params.stateDir ?? resolveStateDir();
+  const stateDir = resolveForkStateDir(params.stateDir);
   const store = await loadStore(stateDir);
 
   if (!store.playbooks[params.playbookId]) return false;
@@ -287,7 +293,7 @@ export async function getPlaybookStats(stateDir?: string): Promise<{
   bySource: Record<string, number>;
   avgSuccessRate: number;
 }> {
-  const resolvedStateDir = stateDir ?? resolveStateDir();
+  const resolvedStateDir = resolveForkStateDir(stateDir);
   const store = await loadStore(resolvedStateDir);
   const playbooks = Object.values(store.playbooks);
 

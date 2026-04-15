@@ -1,10 +1,16 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { resolveStateDir } from "../config/paths.js";
+import { buildForkStateDir, getForkId } from "../multi/fork-isolation.js";
 import type { MemoryEntry } from "./planner-memory.js";
 import type { PlannerDomain, PlannerStateRow, PlannerStateStatus } from "./types.js";
 
 const MS_PER_DAY = 86_400_000;
+
+function resolveForkStateDir(stateDir?: string): string {
+  const base = stateDir ?? resolveStateDir();
+  return buildForkStateDir(base, getForkId());
+}
 
 type PlannerStateFile = { sessions: Record<string, PlannerStateRow[]> };
 
@@ -73,7 +79,7 @@ export async function queryDecisions(params: {
   outcome?: "approved" | "rejected" | "modified" | "all";
   stateDir?: string;
 }): Promise<DecisionQueryResult> {
-  const stateDir = params.stateDir ?? resolveStateDir();
+  const stateDir = resolveForkStateDir(params.stateDir);
   const cutoffMs = Date.now() - params.lookbackDays * MS_PER_DAY;
   const rows = await loadPlannerState(stateDir);
 
@@ -104,7 +110,7 @@ export async function queryLastOccurrence(params: {
   keyPattern: string | RegExp;
   stateDir?: string;
 }): Promise<LastOccurrenceResult | null> {
-  const stateDir = params.stateDir ?? resolveStateDir();
+  const stateDir = resolveForkStateDir(params.stateDir);
   const entries = await loadMemoryEntries(stateDir);
   const pattern = params.keyPattern instanceof RegExp
     ? params.keyPattern
@@ -128,7 +134,7 @@ export async function queryFollowUps(params: {
   withinDays: number;
   stateDir?: string;
 }): Promise<readonly FollowUpResult[]> {
-  const stateDir = params.stateDir ?? resolveStateDir();
+  const stateDir = resolveForkStateDir(params.stateDir);
   const entries = await loadMemoryEntries(stateDir);
   const trigger = entries.find((e) => e.key === params.triggerKey);
   if (!trigger) return [];
@@ -148,7 +154,7 @@ export async function queryFrequency(params: {
   lookbackDays: number;
   stateDir?: string;
 }): Promise<FrequencyQueryResult> {
-  const stateDir = params.stateDir ?? resolveStateDir();
+  const stateDir = resolveForkStateDir(params.stateDir);
   const cutoffMs = Date.now() - params.lookbackDays * MS_PER_DAY;
   const entries = await loadMemoryEntries(stateDir);
   const pattern = params.keyPattern instanceof RegExp
@@ -257,7 +263,7 @@ async function saveSessionIndex(stateDir: string, index: SessionIndex): Promise<
 export async function rebuildSessionIndex(params: {
   stateDir?: string;
 } = {}): Promise<number> {
-  const stateDir = params.stateDir ?? resolveStateDir();
+  const stateDir = resolveForkStateDir(params.stateDir);
   const plannerRows = await loadPlannerState(stateDir);
 
   const indexed: IndexedSession[] = plannerRows
@@ -292,7 +298,7 @@ export async function searchSessions(params: {
   statusFilter?: PlannerStateStatus[];
   stateDir?: string;
 }): Promise<SessionSearchResult> {
-  const stateDir = params.stateDir ?? resolveStateDir();
+  const stateDir = resolveForkStateDir(params.stateDir);
   const limit = params.limit ?? DEFAULT_SEARCH_LIMIT;
   const queryTerms = tokenize(params.query);
 
@@ -349,7 +355,7 @@ export async function indexSessionIfNeeded(params: {
   updatedAt: number;
   stateDir?: string;
 }): Promise<void> {
-  const stateDir = params.stateDir ?? resolveStateDir();
+  const stateDir = resolveForkStateDir(params.stateDir);
   const index = await loadSessionIndex(stateDir);
 
   const existingIdx = index.sessions.findIndex(

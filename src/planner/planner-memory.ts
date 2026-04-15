@@ -2,9 +2,15 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { resolveStateDir } from "../config/paths.js";
 import { retryAsync } from "../infra/retry.js";
+import { buildForkStateDir, getForkId } from "../multi/fork-isolation.js";
 
 const MEMORY_FILE = "memory-v1.json";
 const FILE_RETRY_CONFIG = { attempts: 3, minDelayMs: 100, maxDelayMs: 2000, jitter: 0.1 };
+
+function resolveForkStateDir(stateDir?: string): string {
+  const base = stateDir ?? resolveStateDir();
+  return buildForkStateDir(base, getForkId());
+}
 
 export type MemoryEntry = {
   id: string;
@@ -52,7 +58,7 @@ export async function recordMemory(params: {
   source: string;
   stateDir?: string;
 }): Promise<void> {
-  const stateDir = params.stateDir ?? resolveStateDir();
+  const stateDir = resolveForkStateDir(params.stateDir);
   const statePath = path.join(stateDir, MEMORY_FILE);
   const store = await loadMemory(statePath);
 
@@ -86,7 +92,7 @@ export async function recallMemory(params: {
   key: string;
   stateDir?: string;
 }): Promise<MemoryEntry | null> {
-  const stateDir = params.stateDir ?? resolveStateDir();
+  const stateDir = resolveForkStateDir(params.stateDir);
   const statePath = path.join(stateDir, MEMORY_FILE);
   const store = await loadMemory(statePath);
   return store.entries.find((e) => e.key === params.key) ?? null;
@@ -96,7 +102,7 @@ export async function recallByCategory(params: {
   category: MemoryEntry["category"];
   stateDir?: string;
 }): Promise<MemoryEntry[]> {
-  const stateDir = params.stateDir ?? resolveStateDir();
+  const stateDir = resolveForkStateDir(params.stateDir);
   const statePath = path.join(stateDir, MEMORY_FILE);
   const store = await loadMemory(statePath);
   return store.entries
@@ -105,7 +111,7 @@ export async function recallByCategory(params: {
 }
 
 export async function buildMemoryContext(stateDir?: string): Promise<string> {
-  const stateDirVal = stateDir ?? resolveStateDir();
+  const stateDirVal = resolveForkStateDir(stateDir);
   const statePath = path.join(stateDirVal, MEMORY_FILE);
   const store = await loadMemory(statePath);
   if (store.entries.length === 0) {
