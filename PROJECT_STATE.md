@@ -272,13 +272,13 @@ Supervised first migration — VPS1 (49.12.7.18) to VPS2 (87.99.148.214). Full m
 - Containers started on VPS2: gateway + CLI
 - Telegram conflict resolved: stopped VPS1 containers, VPS2 took over
 
-### Bugs Found During B.1
-1. `deploy_to_new_server` in migrate.ts is a stub (no actual transfer/deploy code)
-2. Server types were `cx*` (deprecated), updated to `cpx*`
-3. `nbg1` not available for cpx21, added `ash` and `hil` locations
-4. No `HETZNER_API_TOKEN` in .env before migration attempt
-5. Docker BuildKit not enabled by default (needed `DOCKER_BUILDKIT=1`)
-6. SSH key pre-configuration not working (HETZNER_SSH_KEY_FINGERPRINT not set)
+### Bugs Found During B.1 (B.2 Fixes)
+1. ~~`deploy_to_new_server` in migrate.ts is a stub~~ — FIXED: implemented with docker install, image save/load, state copy, container start
+2. Server types were `cx*` (deprecated) — FIXED: updated to `cpx*`
+3. `nbg1` not available for cpx21 — FIXED: added `ash` and `hil` locations
+4. No `HETZNER_API_TOKEN` in .env — FIXED: added to .env
+5. Docker BuildKit not enabled by default — FIXED: `DOCKER_BUILDKIT=1` in deploy.sh
+6. SSH key pre-configuration not working — PARTIAL: SSH key fingerprint needed at provision time via HETZNER_SSH_KEY_FINGERPRINT env var
 
 ### B.1 Manual Steps Required
 - Hetzner rescue mode for shadow file fix + SSH key injection
@@ -287,7 +287,7 @@ Supervised first migration — VPS1 (49.12.7.18) to VPS2 (87.99.148.214). Full m
 
 ## Next Move
 
-- **Move B.2**: Fix B.1 bugs — implement `deploy_to_new_server`, add BuildKit env, update SSH key setup
+- **Move B.2**: `deploy_to_new_server` implemented — remaining: SSH key pre-configuration via HETZNER_SSH_KEY_FINGERPRINT
 - **Move B.3**: Self-trigger wiring — health monitor → migration trigger in heartbeat
 - **Move B.4**: Parallel redundancy — leader election, two live instances
 
