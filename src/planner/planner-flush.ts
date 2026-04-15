@@ -2,18 +2,32 @@ import { recordActionOutcome } from "./trust-telemetry.js";
 import { createPlaybook } from "./playbook-manager.js";
 import { recordMemory } from "./planner-memory.js";
 import { getTrustMetrics } from "./trust-telemetry.js";
+import { indexSessionIfNeeded } from "./memory-query.js";
 import type { PlannerStateRow } from "./types.js";
 
 export type FlushContext = {
-  trigger: "worker-complete" | "planner-row-close" | "migration-finish" | "strategic-cycle";
+  trigger:
+    | "worker-complete"
+    | "planner-row-close"
+    | "migration-finish"
+    | "strategic-cycle";
   row?: PlannerStateRow;
   outcome?: "approved" | "rejected" | "modified" | "completed" | "failed";
   draftResult?: string;
   stateDir?: string;
+  toolCallCount?: number;
+  errorCount?: number;
+  userCorrected?: boolean;
+  nonTrivialWorkflow?: boolean;
 };
 
 export type FlushDecision = {
-  action: "write-memory" | "promote-playbook" | "record-telemetry" | "nothing";
+  action:
+    | "write-memory"
+    | "promote-playbook"
+    | "record-telemetry"
+    | "learn-skill"
+    | "nothing";
   reason: string;
   detail?: string;
 };
@@ -23,7 +37,29 @@ export async function decideFlush(params: FlushContext): Promise<FlushDecision> 
 
   if (params.trigger === "worker-complete" && row) {
     const isHighValue = row.score !== undefined && row.score >= 0.7;
-    const hasDraft = Boolean(params.draftResult && params.draftResult.trim().length > 50);
+    const hasDraft = Boolean(
+      params.draftResult && params.draftResult.trim().length > 50,
+    );
+    const toolCalls = params.toolCallCount ?? 0;
+    const errors = params.errorCount ?? 0;
+    const isComplex =
+      toolCalls >= 5 || params.nonTrivialWorkflow === true;
+
+    if (params.userCorrected && toolCalls >= 3) {
+      return {
+        action: "learn-skill",
+        reason: `User corrected approach after ${toolCalls} tool calls — capture the corrected workflow`,
+        detail: `actionClass=${row.actionClass}, domain=${row.domain}, title=${row.title}`,
+      };
+    }
+
+    if (isComplex && errors > 0 && toolCalls >= 3) {
+      return {
+        action: "learn-skill",
+        reason: `Error recovered after ${errors} error(s) across ${toolCalls} tool calls — record successful recovery pattern`,
+        detail: `actionClass=${row.actionClass}, domain=${row.domain}`,
+      };
+    }
 
     if (outcome === "completed" && isHighValue && hasDraft) {
       return {
@@ -129,6 +165,16 @@ export async function executeFlush(params: FlushContext): Promise<{
         source: "planner-flush",
         stateDir: params.stateDir,
       }).catch(() => {});
+      await indexSessionIfNeeded({
+        sessionKey: params.row.sessionKey,
+        domain: params.row.domain,
+        title: params.row.title,
+        summary: params.row.summary,
+        status: params.row.status,
+        createdAt: params.row.createdAt,
+        updatedAt: params.row.updatedAt,
+        stateDir: params.stateDir,
+      }).catch(() => {});
       memoryRecorded = true;
     }
   }
@@ -136,34 +182,100 @@ export async function executeFlush(params: FlushContext): Promise<{
   if (flushDecision.action === "promote-playbook" && params.row) {
     const trustMetrics = await getTrustMetrics(params.stateDir);
     const domainRate = trustMetrics.byDomain[params.row.domain ?? "general"];
-    const approvalRate = domainRate ? domainRate.approved / Math.max(domainRate.total, 1) : 0.8;
+    const approvalRate = domainRate
+      ? domainRate.approved / Math.max(domainRate.total, 1)
+      : 0.8;
 
-    const sourceItemId = params.row.sourceItemId === params.row.id ? params.row.id : undefined;
+    const sourceItemId =
+      params.row.sourceItemId === params.row.id ? params.row.id : undefined;
 
-    const playbook = await createPlaybook({
-      name: `[${params.row.domain ?? "general"}] ${params.row.title ?? "Untitled"}`.slice(0, 80),
+    const result = await createPlaybook({
+      name: `[${params.row.domain ?? "general"}] ${params.row.title ?? "Untitled"}`.slice(
+        0,
+        80,
+      ),
       category: mapDomainToCategory(params.row.domain),
       description: params.row.summary ?? flushDecision.reason,
       triggers: [
         { type: "domain", value: params.row.domain ?? "general" },
-        { type: "action-class", value: params.row.actionClass ?? "spawn_readonly" },
-        { type: "source", value: params.row.sourceItemId ? "child-item" : "planner" },
+        {
+          type: "action-class",
+          value: params.row.actionClass ?? "spawn_readonly",
+        },
+        {
+          type: "source",
+          value: params.row.sourceItemId ? "child-item" : "planner",
+        },
       ],
-      procedure: params.draftResult?.slice(0, 2000) ?? params.row.summary ?? "No procedure recorded",
+      procedure:
+        params.draftResult?.slice(0, 2000) ??
+        params.row.summary ??
+        "No procedure recorded",
       sourceItemId,
-      tags: [params.row.domain ?? "general", approvalRate >= 0.8 ? "high-trust" : "medium-trust"],
+      tags: [
+        params.row.domain ?? "general",
+        approvalRate >= 0.8 ? "high-trust" : "medium-trust",
+      ],
       stateDir: params.stateDir,
-    }).catch(() => null);
+    }).catch(() => ({ playbook: null }));
 
-    if (playbook) {
+    if (result.playbook) {
       playbookCreated = true;
       await recordMemory({
-        key: `playbook:created:${playbook.id}`,
-        value: JSON.stringify({ playbookId: playbook.id, name: playbook.name }),
+        key: `playbook:created:${result.playbook.id}`,
+        value: JSON.stringify({
+          playbookId: result.playbook.id,
+          name: result.playbook.name,
+        }),
         category: "decision",
         source: "planner-flush",
         stateDir: params.stateDir,
       }).catch(() => {});
+    } else if (result.blockedReason) {
+      flushDecision.reason += ` [blocked: ${result.blockedReason}]`;
+    }
+  }
+
+  if (flushDecision.action === "learn-skill" && params.row) {
+    const result = await createPlaybook({
+      name: `[learned] ${params.row.title ?? "Untitled procedure"}`.slice(0, 80),
+      category: mapDomainToCategory(params.row.domain),
+      description: `Learned from ${flushDecision.reason}: ${params.row.summary ?? ""}`.slice(
+        0,
+        200,
+      ),
+      triggers: [
+        { type: "domain", value: params.row.domain ?? "general" },
+        { type: "keyword", value: params.row.title ?? "" },
+      ],
+      procedure:
+        params.draftResult?.slice(0, 2000) ??
+        params.row.summary ??
+        flushDecision.reason,
+      sourceItemId: params.row.id,
+      tags: [
+        "learned",
+        params.userCorrected ? "user-corrected" : "",
+        params.errorCount ? "error-recovery" : "",
+      ].filter(Boolean),
+      stateDir: params.stateDir,
+    }).catch(() => ({ playbook: null }));
+
+    if (result.playbook) {
+      playbookCreated = true;
+      await recordMemory({
+        key: `skill:learned:${result.playbook.id}`,
+        value: JSON.stringify({
+          playbookId: result.playbook.id,
+          name: result.playbook.name,
+          reason: flushDecision.reason,
+        }),
+        category: "context",
+        source: "planner-flush",
+        stateDir: params.stateDir,
+      }).catch(() => {});
+    } else if (result.blockedReason) {
+      flushDecision.reason += ` [blocked: ${result.blockedReason}]`;
     }
   }
 

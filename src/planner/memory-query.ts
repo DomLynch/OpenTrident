@@ -179,3 +179,210 @@ export async function queryFrequency(params: {
     lastSeenDaysAgo: lastSeenMs ? Math.round((Date.now() - lastSeenMs) / MS_PER_DAY) : null,
   };
 }
+
+const SESSION_INDEX_FILE = "session-index-v1.json";
+const MAX_INDEXED_SESSIONS = 500;
+const MAX_SNIPPET_CHARS = 2000;
+const DEFAULT_SEARCH_LIMIT = 5;
+
+export interface SessionSummary {
+  sessionKey: string;
+  domain: PlannerDomain;
+  title: string;
+  status: PlannerStateStatus;
+  createdAt: number;
+  updatedAt: number;
+  snippet: string;
+  score: number;
+  matchedTerms: string[];
+}
+
+export interface SessionSearchResult {
+  query: string;
+  totalSessions: number;
+  returned: number;
+  sessions: SessionSummary[];
+}
+
+type SessionIndex = {
+  sessions: IndexedSession[];
+  lastUpdated: number;
+};
+
+type IndexedSession = {
+  sessionKey: string;
+  domain: PlannerDomain;
+  title: string;
+  status: PlannerStateStatus;
+  createdAt: number;
+  updatedAt: number;
+  terms: string[];
+  snippet: string;
+};
+
+function tokenize(text: string): string[] {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((t) => t.length > 2);
+}
+
+function computeScore(terms: string[], queryTerms: string[]): number {
+  const querySet = new Set(queryTerms);
+  const matched = terms.filter((t) => querySet.has(t));
+  if (matched.length === 0) return 0;
+  return matched.length / queryTerms.length;
+}
+
+async function loadSessionIndex(stateDir: string): Promise<SessionIndex> {
+  const filePath = path.join(stateDir, SESSION_INDEX_FILE);
+  try {
+    const raw = await fs.readFile(filePath, "utf8");
+    return JSON.parse(raw) as SessionIndex;
+  } catch {
+    return { sessions: [], lastUpdated: 0 };
+  }
+}
+
+async function saveSessionIndex(stateDir: string, index: SessionIndex): Promise<void> {
+  const filePath = path.join(stateDir, SESSION_INDEX_FILE);
+  await fs.mkdir(stateDir, { recursive: true });
+  const tmpName = `.session-index.tmp.${Date.now()}.${Math.random().toString(36).slice(2, 6)}`;
+  const tmpPath = path.join(stateDir, tmpName);
+  await fs.writeFile(tmpPath, JSON.stringify(index, null, 2), "utf8");
+  await fs.rename(tmpPath, filePath);
+}
+
+export async function rebuildSessionIndex(params: {
+  stateDir?: string;
+} = {}): Promise<number> {
+  const stateDir = params.stateDir ?? resolveStateDir();
+  const plannerRows = await loadPlannerState(stateDir);
+
+  const indexed: IndexedSession[] = plannerRows
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, MAX_INDEXED_SESSIONS)
+    .map((row) => {
+      const titleText = `${row.title ?? ""} ${row.summary ?? ""} ${row.domain ?? ""}`;
+      const terms = [...new Set(tokenize(titleText))];
+      const snippet = (row.summary ?? row.title ?? "").slice(0, MAX_SNIPPET_CHARS);
+      return {
+        sessionKey: row.sessionKey,
+        domain: row.domain,
+        title: row.title,
+        status: row.status,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+        terms,
+        snippet,
+      };
+    });
+
+  const index: SessionIndex = { sessions: indexed, lastUpdated: Date.now() };
+  await saveSessionIndex(stateDir, index);
+  return indexed.length;
+}
+
+export async function searchSessions(params: {
+  query: string;
+  limit?: number;
+  domain?: PlannerDomain;
+  minScore?: number;
+  statusFilter?: PlannerStateStatus[];
+  stateDir?: string;
+}): Promise<SessionSearchResult> {
+  const stateDir = params.stateDir ?? resolveStateDir();
+  const limit = params.limit ?? DEFAULT_SEARCH_LIMIT;
+  const queryTerms = tokenize(params.query);
+
+  if (queryTerms.length === 0) {
+    return { query: params.query, totalSessions: 0, returned: 0, sessions: [] };
+  }
+
+  const index = await loadSessionIndex(stateDir);
+
+  let sessions = index.sessions
+    .map((s) => ({
+      sessionKey: s.sessionKey,
+      domain: s.domain,
+      title: s.title,
+      status: s.status,
+      createdAt: s.createdAt,
+      updatedAt: s.updatedAt,
+      snippet: s.snippet,
+      score: computeScore(s.terms, queryTerms),
+      matchedTerms: s.terms.filter((t) => queryTerms.includes(t)),
+    }))
+    .filter((s) => s.matchedTerms.length > 0);
+
+  if (params.domain) {
+    sessions = sessions.filter((s) => s.domain === params.domain);
+  }
+
+  if (params.statusFilter && params.statusFilter.length > 0) {
+    sessions = sessions.filter((s) => params.statusFilter!.includes(s.status));
+  }
+
+  if (params.minScore !== undefined) {
+    sessions = sessions.filter((s) => s.score >= params.minScore!);
+  }
+
+  sessions.sort((a, b) => b.score - a.score);
+  const top = sessions.slice(0, limit);
+
+  return {
+    query: params.query,
+    totalSessions: index.sessions.length,
+    returned: top.length,
+    sessions: top,
+  };
+}
+
+export async function indexSessionIfNeeded(params: {
+  sessionKey: string;
+  domain: PlannerDomain;
+  title: string;
+  summary?: string;
+  status: PlannerStateStatus;
+  createdAt: number;
+  updatedAt: number;
+  stateDir?: string;
+}): Promise<void> {
+  const stateDir = params.stateDir ?? resolveStateDir();
+  const index = await loadSessionIndex(stateDir);
+
+  const existingIdx = index.sessions.findIndex(
+    (s) => s.sessionKey === params.sessionKey,
+  );
+  const terms = [...new Set(tokenize(`${params.title} ${params.summary ?? ""}`))];
+  const snippet = (params.summary ?? params.title ?? "").slice(
+    0,
+    MAX_SNIPPET_CHARS,
+  );
+
+  const entry: IndexedSession = {
+    sessionKey: params.sessionKey,
+    domain: params.domain,
+    title: params.title,
+    status: params.status,
+    createdAt: params.createdAt,
+    updatedAt: params.updatedAt,
+    terms,
+    snippet,
+  };
+
+  if (existingIdx >= 0) {
+    index.sessions[existingIdx] = entry;
+  } else {
+    index.sessions.unshift(entry);
+    if (index.sessions.length > MAX_INDEXED_SESSIONS) {
+      index.sessions = index.sessions
+        .sort((a, b) => b.updatedAt - a.updatedAt)
+        .slice(0, MAX_INDEXED_SESSIONS);
+    }
+  }
+
+  index.lastUpdated = Date.now();
+  await saveSessionIndex(stateDir, index);
+}

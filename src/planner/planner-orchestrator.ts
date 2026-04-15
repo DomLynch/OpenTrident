@@ -4,6 +4,7 @@ import { getAutonomyLevel, getDomainAutonomyConfig, requiresConfirmation } from 
 import { originatePlannerGoal } from "./goal-origination.js";
 import { buildPlannerInbox } from "./planner-inbox.js";
 import { getTrustMetrics } from "./trust-telemetry.js";
+import { searchSessions } from "./memory-query.js";
 import { sanitizeEvidence, validateActionClass, validatePlannerDomain } from "./planner-security.js";
 import type { PlannerDecision, PlannerDecisionMode, PlannerItem } from "./types.js";
 
@@ -22,6 +23,7 @@ function trimEvidence(text: string, maxChars = 160): string {
 async function buildPromptBlock(params: {
   decision: PlannerDecision;
   previousHeartbeatText?: string;
+  similarSessions?: readonly { sessionKey: string; title: string; snippet: string; score: number }[];
 }): Promise<string | undefined> {
   const { decision } = params;
   if (!decision.goal || !decision.topItem) {
@@ -90,6 +92,15 @@ async function buildPromptBlock(params: {
     }
   } catch {
     // Trust telemetry not available
+  }
+
+  if (params.similarSessions && params.similarSessions.length > 0) {
+    lines.push("");
+    lines.push("Similar past sessions (for context — avoid repeating approaches that failed):");
+    for (const s of params.similarSessions.slice(0, 3)) {
+      const snippet = s.snippet.length > 120 ? `${s.snippet.slice(0, 119)}…` : s.snippet;
+      lines.push(`- [${s.sessionKey}] ${s.title}: ${snippet}`);
+    }
   }
 
   return lines.join("\n");
@@ -185,6 +196,15 @@ export async function resolvePlannerDecision(params: {
     needsConfirmation,
   });
 
+  const spawnModes = ["spawn_readonly", "draft_reply", "draft_issue", "brief", "send"];
+  const similarSessions = spawnModes.includes(mode)
+    ? await searchSessions({
+        query: `${safeGoal.domain} ${safeGoal.title} ${sanitizedItem.summary}`,
+        limit: 3,
+        minScore: 0.3,
+      }).catch(() => ({ sessions: [] as const }))
+    : undefined;
+
   const decision: PlannerDecision = {
     mode,
     topItem: sanitizedItem,
@@ -194,6 +214,7 @@ export async function resolvePlannerDecision(params: {
   decision.promptBlock = await buildPromptBlock({
     decision,
     previousHeartbeatText: params.entry?.lastHeartbeatText,
+    similarSessions: similarSessions?.sessions,
   });
   return decision;
 }
