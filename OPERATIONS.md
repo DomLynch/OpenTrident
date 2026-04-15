@@ -1,6 +1,18 @@
 # OpenTrident Operations Runbook
 
+## One-Time Setup
+
+```bash
+# Set these in your shell profile (never committed to git):
+export VPS_HOST="49.12.7.18"
+export SSH_KEY_PATH="~/.ssh/binance_futures_tool"
+```
+
 ## Quick Commands
+
+```bash
+# Check gateway health
+curl http://127.0.0.1:18889/healthz
 
 ```bash
 # Check gateway health
@@ -13,13 +25,13 @@ docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
 docker logs opentrident-gateway --tail 100 -f
 
 # SSH into VPS
-ssh -i ~/.ssh/binance_futures_tool root@49.12.7.18
+ssh -i $SSH_KEY_PATH root@$VPS_HOST
 
 # Restart gateway
-ssh -i ~/.ssh/binance_futures_tool root@49.12.7.18 "cd /opt/opentrident && docker compose -f docker-compose.vps.yml restart opentrident-gateway"
+ssh -i $SSH_KEY_PATH root@$VPS_HOST "cd /opt/opentrident && docker compose -f docker-compose.vps.yml restart opentrident-gateway"
 
 # Tail live logs
-ssh -i ~/.ssh/binance_futures_tool root@49.12.7.18 "docker logs opentrident-gateway -f --tail 50"
+ssh -i $SSH_KEY_PATH root@$VPS_HOST "docker logs opentrident-gateway -f --tail 50"
 ```
 
 ## Deployment
@@ -30,7 +42,7 @@ ssh -i ~/.ssh/binance_futures_tool root@49.12.7.18 "docker logs opentrident-gate
 
 ```bash
 # From your Mac, deploy via SSH:
-ssh -i ~/.ssh/binance_futures_tool root@49.12.7.18 "cd /opt/opentrident && bash scripts/deploy.sh"
+ssh -i $SSH_KEY_PATH root@$VPS_HOST "cd /opt/opentrident && bash scripts/deploy.sh"
 
 # Or run locally if you have Docker access to the VPS:
 ./scripts/deploy.sh
@@ -63,8 +75,8 @@ sleep 15 && curl http://127.0.0.1:18889/healthz
 ### Current Image
 
 ```
-opentrident:2026.4.14-r34  — healthy (gateway + CLI running)
-opentrident:latest           — same as above
+opentrident:2026.4.15-r102134  — healthy (gateway + CLI running)
+opentrident:latest               — same as above
 ```
 
 ## Troubleshooting
@@ -93,7 +105,7 @@ docker exec opentrident-gateway cat /home/node/.opentrident/trust-telemetry-v1.j
 ### Telegram not responding
 ```bash
 # Check Telegram bot token
-ssh -i ~/.ssh/binance_futures_tool root@49.12.7.18 "grep TELEGRAM_BOT_TOKEN /opt/opentrident/.env"
+ssh -i $SSH_KEY_PATH root@$VPS_HOST "grep TELEGRAM_BOT_TOKEN /opt/opentrident/.env"
 
 # Verify bot is working (send test message manually via bot API)
 ```
@@ -157,7 +169,7 @@ git add <changed-files> && git commit --no-verify -m "feat: description"
 git push opentrident opentrident-prune:opentrident-prune
 
 # 2. Deploy using the standard script (same as production)
-ssh -i ~/.ssh/binance_futures_tool root@49.12.7.18 "cd /opt/opentrident && bash scripts/deploy.sh"
+ssh -i $SSH_KEY_PATH root@$VPS_HOST "cd /opt/opentrident && bash scripts/deploy.sh"
 
 # 3. Verify
 sleep 20 && curl http://127.0.0.1:18889/healthz
