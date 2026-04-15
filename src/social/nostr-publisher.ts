@@ -1,4 +1,5 @@
-import { finalizeEvent, generateSecretKey, getPublicKey, nip19 } from "nostr-tools/pure";
+import { finalizeEvent, generateSecretKey, getPublicKey } from "nostr-tools/pure";
+import { nip19 } from "nostr-tools/nip19";
 import { Relay } from "nostr-tools/relay";
 import fs from "node:fs/promises";
 import path from "node:path";
