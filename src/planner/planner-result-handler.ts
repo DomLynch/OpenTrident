@@ -12,6 +12,9 @@ const CHILD_COMPLETION_CHECK_WINDOW_MS = 30_000;
 type ChildSessionSnapshot = {
   status?: string;
   messageCount?: number;
+  toolCallCount?: number;
+  toolErrorCount?: number;
+  userRedirectCount?: number;
   lastMessageAt?: number;
   endedAt?: number;
   lastMessage?: string;
@@ -35,6 +38,9 @@ async function loadChildSessionSnapshot(childSessionKey: string): Promise<ChildS
     return {
       status: entry.status as string | undefined,
       messageCount: entry.messageCount as number | undefined,
+      toolCallCount: entry.toolCallCount as number | undefined,
+      toolErrorCount: entry.toolErrorCount as number | undefined,
+      userRedirectCount: entry.userRedirectCount as number | undefined,
       lastMessageAt: entry.lastMessageAt as number | undefined,
       endedAt: entry.endedAt as number | undefined,
       lastMessage: typeof lastMessageObj?.text === "string" ? lastMessageObj.text : undefined,
@@ -129,8 +135,9 @@ export async function handleWorkerResult(params: HandleWorkerResultParams): Prom
           : "spawned",
   }).catch(() => {});
 
-  const toolCallCount = snapshot.messageCount ?? 0;
-  const errorCount = snapshot.status === "failed" ? 1 : 0;
+  const toolCallCount = snapshot.toolCallCount ?? snapshot.messageCount ?? 0;
+  const errorCount = snapshot.toolErrorCount ?? (snapshot.status === "failed" ? 1 : 0);
+  const userCorrected = newStatus === "awaiting_confirmation";
   await executeFlush({
     trigger: "worker-complete",
     row,
@@ -145,7 +152,7 @@ export async function handleWorkerResult(params: HandleWorkerResultParams): Prom
     toolCallCount,
     errorCount,
     nonTrivialWorkflow: toolCallCount >= 5,
-    userCorrected: false,
+    userCorrected,
   }).catch(() => {});
 
   return { updated: true, newStatus, draftResult };
