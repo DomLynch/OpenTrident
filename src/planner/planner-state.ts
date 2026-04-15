@@ -80,6 +80,7 @@ export async function recordPlannerDecision(params: {
     ...(params.childSessionKey ? { childSessionKey: params.childSessionKey } : {}),
     ...(params.runId ? { runId: params.runId } : {}),
     ...(params.note ? { note: params.note } : {}),
+    ...(params.decision.playbookId ? { playbookId: params.decision.playbookId } : {}),
   };
   const rows = state.sessions[params.sessionKey] ?? [];
   state.sessions[params.sessionKey] = [row, ...rows].slice(0, MAX_ROWS_PER_SESSION);

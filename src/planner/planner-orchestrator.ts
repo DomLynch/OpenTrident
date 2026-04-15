@@ -5,6 +5,7 @@ import { originatePlannerGoal } from "./goal-origination.js";
 import { buildPlannerInbox } from "./planner-inbox.js";
 import { getTrustMetrics } from "./trust-telemetry.js";
 import { searchSessions } from "./memory-query.js";
+import { findPlaybooks, type Playbook } from "./playbook-manager.js";
 import { sanitizeEvidence, validateActionClass, validatePlannerDomain } from "./planner-security.js";
 import type { PlannerDecision, PlannerDecisionMode, PlannerItem } from "./types.js";
 
@@ -24,6 +25,7 @@ async function buildPromptBlock(params: {
   decision: PlannerDecision;
   previousHeartbeatText?: string;
   similarSessions?: readonly { sessionKey: string; title: string; snippet: string; score: number }[];
+  relevantPlaybooks?: readonly Playbook[];
 }): Promise<string | undefined> {
   const { decision } = params;
   if (!decision.goal || !decision.topItem) {
@@ -101,6 +103,21 @@ async function buildPromptBlock(params: {
       const snippet = s.snippet.length > 120 ? `${s.snippet.slice(0, 119)}…` : s.snippet;
       lines.push(`- [${s.sessionKey}] ${s.title}: ${snippet}`);
     }
+  }
+
+  if (params.relevantPlaybooks && params.relevantPlaybooks.length > 0) {
+    lines.push("");
+    lines.push("Proven playbooks for this pattern (apply the winning procedure — do not reinvent):");
+    for (const p of params.relevantPlaybooks.slice(0, 3)) {
+      const uses = p.successCount + p.failureCount;
+      const rate = uses > 0 ? ((p.successCount / uses) * 100).toFixed(0) : "new";
+      const procedure = p.procedure.length > 400
+        ? `${p.procedure.slice(0, 399)}…`
+        : p.procedure;
+      lines.push(`- [${p.id}] ${p.name} (${rate}% success over ${uses} uses)`);
+      lines.push(`  ${procedure.replace(/\n/g, "\n  ")}`);
+    }
+    lines.push("- If one of these playbooks fits, follow it. If none fit, proceed from scratch and a new playbook may be written on success.");
   }
 
   return lines.join("\n");
@@ -205,16 +222,29 @@ export async function resolvePlannerDecision(params: {
       }).catch(() => ({ sessions: [] as const }))
     : undefined;
 
+  const relevantPlaybooks = spawnModes.includes(mode)
+    ? await findPlaybooks({
+        domain: safeGoal.domain,
+        actionClass: safeGoal.actionClass,
+      }).catch(() => [] as Playbook[])
+    : undefined;
+
+  const selectedPlaybookId = relevantPlaybooks && relevantPlaybooks.length > 0
+    ? relevantPlaybooks[0].id
+    : undefined;
+
   const decision: PlannerDecision = {
     mode,
     topItem: sanitizedItem,
     goal: safeGoal,
     candidates,
+    playbookId: selectedPlaybookId,
   };
   decision.promptBlock = await buildPromptBlock({
     decision,
     previousHeartbeatText: params.entry?.lastHeartbeatText,
     similarSessions: similarSessions?.sessions,
+    relevantPlaybooks,
   });
   return decision;
 }

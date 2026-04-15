@@ -56,6 +56,7 @@ export type PlannerDecision = {
   goal?: PlannerGoal;
   candidates: PlannerItem[];
   promptBlock?: string;
+  playbookId?: string;
 };
 
 export type PlannerStateStatus =
@@ -98,4 +99,5 @@ export type PlannerStateRow = {
   retryCount?: number;
   downgradedFrom?: PlannerActionClass;
   deferredUntil?: number;
+  playbookId?: string;
 };

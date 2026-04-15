@@ -1,5 +1,5 @@
 import { recordActionOutcome } from "./trust-telemetry.js";
-import { createPlaybook } from "./playbook-manager.js";
+import { createPlaybook, recordPlaybookUse } from "./playbook-manager.js";
 import { recordMemory } from "./planner-memory.js";
 import { getTrustMetrics } from "./trust-telemetry.js";
 import { indexSessionIfNeeded } from "./memory-query.js";
@@ -277,6 +277,17 @@ export async function executeFlush(params: FlushContext): Promise<{
     } else if (result.blockedReason) {
       flushDecision.reason += ` [blocked: ${result.blockedReason}]`;
     }
+  }
+
+  if (params.row?.playbookId && params.outcome) {
+    const success = params.outcome === "completed"
+      || params.outcome === "approved"
+      || params.outcome === "modified";
+    await recordPlaybookUse({
+      playbookId: params.row.playbookId,
+      success,
+      stateDir: params.stateDir,
+    }).catch(() => {});
   }
 
   return {
