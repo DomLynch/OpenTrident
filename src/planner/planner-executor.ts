@@ -104,5 +104,9 @@ export async function recordApprovalOutcome(params: {
     row,
     outcome: result,
     draftResult: params.content,
+    toolCallCount: 0,
+    errorCount: 0,
+    userCorrected: result === "modified",
+    nonTrivialWorkflow: false,
   }).catch(() => {});
 }

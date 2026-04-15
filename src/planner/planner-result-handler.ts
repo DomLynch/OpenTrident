@@ -129,6 +129,8 @@ export async function handleWorkerResult(params: HandleWorkerResultParams): Prom
           : "spawned",
   }).catch(() => {});
 
+  const toolCallCount = snapshot.messageCount ?? 0;
+  const errorCount = snapshot.status === "failed" ? 1 : 0;
   await executeFlush({
     trigger: "worker-complete",
     row,
@@ -140,6 +142,10 @@ export async function handleWorkerResult(params: HandleWorkerResultParams): Prom
           ? "failed"
           : "rejected",
     draftResult,
+    toolCallCount,
+    errorCount,
+    nonTrivialWorkflow: toolCallCount >= 5,
+    userCorrected: false,
   }).catch(() => {});
 
   return { updated: true, newStatus, draftResult };
