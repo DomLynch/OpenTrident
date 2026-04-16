@@ -67,18 +67,18 @@ function recoverPendingOutboundDeliveries(params: {
   })().catch((err) => params.log.error(`Delivery recovery failed: ${String(err)}`));
 }
 
-export function startGatewayRuntimeServices(params: {
+export async function startGatewayRuntimeServices(params: {
   minimalTestGateway: boolean;
   cfgAtStart: OpenClawConfig;
   channelManager: GatewayChannelManager;
   cron: { start: () => Promise<void> };
   logCron: { error: (message: string) => void };
   log: GatewayRuntimeServiceLogger;
-}): {
+}): Promise<{
   heartbeatRunner: HeartbeatRunner;
   channelHealthMonitor: ChannelHealthMonitor | null;
   stopModelPricingRefresh: () => void;
-} {
+}> {
   const heartbeatRunner = params.minimalTestGateway
     ? createNoopHeartbeatRunner()
     : await startHeartbeatRunner({ cfg: params.cfgAtStart });
