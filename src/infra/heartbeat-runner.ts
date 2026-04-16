@@ -1006,7 +1006,7 @@ export async function runHeartbeatOnce(opts: {
   if (prompt === null) {
     return { status: "skipped", reason: "no-tasks-due" };
   }
-  const plannerSessionKey = preflight.session?.sessionKey ?? (preflight.session ? sessionKey : "main");
+  const plannerSessionKey = preflight.session?.sessionKey ?? "main";
   const plannerRows = await readPlannerRows({ sessionKey: plannerSessionKey });
   const completedResults = await processWorkerResults({
     rows: plannerRows,
