@@ -1709,11 +1709,17 @@ Planner worker:
       try {
         const lastDow = parseInt(await fs.readFile(lastReportFile, "utf8").catch(() => "0"), 10);
         if (lastDow !== now.getDate()) {
-          const report = await generateWeeklyReportText().catch(() => null);
+          const report = await generateWeeklyReportText({
+            cfg,
+            agentId,
+            sessionKey,
+            nowMs: startedAt,
+            entry,
+          }).catch(() => null);
           if (report) {
             await publishWeeklyReport(report).catch(() => {});
+            await fs.writeFile(lastReportFile, String(now.getDate()), "utf8").catch(() => {});
           }
-          await fs.writeFile(lastReportFile, String(now.getDate()), "utf8").catch(() => {});
         }
       } catch {
         // Skip weekly report

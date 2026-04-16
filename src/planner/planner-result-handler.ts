@@ -137,7 +137,7 @@ export async function handleWorkerResult(params: HandleWorkerResultParams): Prom
 
   const toolCallCount = snapshot.toolCallCount ?? snapshot.messageCount ?? 0;
   const errorCount = snapshot.toolErrorCount ?? (snapshot.status === "failed" ? 1 : 0);
-  const userCorrected = newStatus === "awaiting_confirmation";
+  const userCorrected = false;
   await executeFlush({
     trigger: "worker-complete",
     row,

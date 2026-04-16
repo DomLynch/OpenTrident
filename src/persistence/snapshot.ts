@@ -5,7 +5,7 @@ import { gzip } from "node:zlib";
 import { promisify } from "node:util";
 import { exec } from "node:child_process";
 import { resolveStateDir } from "../config/paths.js";
-import { ensureSigningKey, signBytes } from "./signing-key.js";
+import { ensureSigningKey, signBytes, verifyBytes } from "./signing-key.js";
 
 const gzipAsync = promisify(gzip);
 const execAsync = promisify(exec);
@@ -143,7 +143,7 @@ export async function publishSnapshotToGitHub(bundlePath: string, snapshotId: st
     return;
   }
   try {
-    await execAsync(`gh release create "${snapshotId}" "${tarPath}" --repo "${repo}" --title "Snapshot ${snapshotId}" --notes "Automated OpenTrident snapshot" --delete-branch`);
+    await execAsync(`gh release create "${snapshotId}" "${tarPath}" --repo "${repo}" --title "Snapshot ${snapshotId}" --notes "Automated OpenTrident snapshot"`);
   } catch {
     try {
       await execAsync(`gh release upload "${snapshotId}" "${tarPath}" --repo "${repo}" --clobber`);
@@ -151,4 +151,59 @@ export async function publishSnapshotToGitHub(bundlePath: string, snapshotId: st
       // Release may not exist, skip
     }
   }
+}
+
+export async function verifySnapshot(bundlePath: string): Promise<{ valid: boolean; error?: string }> {
+  const manifestPath = path.join(bundlePath, "manifest.json");
+  let snapshot: Snapshot;
+  try {
+    const raw = await fs.readFile(manifestPath, "utf8");
+    snapshot = JSON.parse(raw) as Snapshot;
+  } catch {
+    return { valid: false, error: "Cannot read manifest.json" };
+  }
+
+  const sortedKeys = Object.keys(snapshot.files).sort();
+  const fileHashes: string[] = [];
+  for (const k of sortedKeys) {
+    const gzPath = `${bundlePath}/${k}.gz`;
+    try {
+      const gz = await fs.readFile(gzPath);
+      fileHashes.push(sha256(gz));
+    } catch {
+      return { valid: false, error: `Cannot read file: ${k}` };
+    }
+  }
+
+  const combined = Buffer.concat(fileHashes.map((h) => Buffer.from(h, "hex")));
+  const contentHash = sha256(combined);
+
+  if (contentHash !== snapshot.contentHash) {
+    return { valid: false, error: "Content hash mismatch" };
+  }
+
+  const canonicalJson = JSON.stringify(
+    {
+      version: snapshot.version,
+      snapshotId: snapshot.snapshotId,
+      parentSnapshotId: snapshot.parentSnapshotId,
+      generatedAt: snapshot.generatedAt,
+      instanceId: snapshot.instanceId,
+      contentHash: snapshot.contentHash,
+      files: snapshot.files,
+    },
+    Object.keys(snapshot).sort(),
+  );
+
+  const valid = verifyBytes(
+    snapshot.publicKeyPem,
+    Buffer.from(canonicalJson, "utf8"),
+    snapshot.signature,
+  );
+
+  if (!valid) {
+    return { valid: false, error: "Signature verification failed" };
+  }
+
+  return { valid: true };
 }

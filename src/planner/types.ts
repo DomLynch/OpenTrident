@@ -100,4 +100,5 @@ export type PlannerStateRow = {
   downgradedFrom?: PlannerActionClass;
   deferredUntil?: number;
   playbookId?: string;
+  autoApproved?: boolean;
 };
