@@ -57,7 +57,9 @@ echo "  Previous: ${PREV_TAG:-none}"
 # 5. Build image with layer caching (no --no-cache)
 echo ""
 echo "[5/8] Building image (with layer cache)..."
-docker build -t "opentrident:${FULL_TAG}" -t "opentrident:${LATEST_TAG}" .
+docker build \
+  --build-arg OPENCLAW_INSTALL_BRAIN_RUNTIME=1 \
+  -t "opentrident:${FULL_TAG}" -t "opentrident:${LATEST_TAG}" .
 
 # 6. Stop running containers
 echo ""
