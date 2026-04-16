@@ -814,7 +814,7 @@ ${lines.join("\n")}`;
 
       if (recoveryAction.action === "abandon") {
         await updatePlannerRow({
-          sessionKey,
+          sessionKey: params.preflight.session.sessionKey,
           rowId: recoveryAction.rowId,
           nowMs: startedAt,
           patch: {
@@ -824,7 +824,7 @@ ${lines.join("\n")}`;
         });
       } else if (recoveryAction.action === "downgrade") {
         await updatePlannerRow({
-          sessionKey,
+          sessionKey: params.preflight.session.sessionKey,
           rowId: recoveryAction.rowId,
           nowMs: startedAt,
           patch: {
@@ -838,7 +838,7 @@ ${lines.join("\n")}`;
         });
       } else if (recoveryAction.action === "escalate") {
         await updatePlannerRow({
-          sessionKey,
+          sessionKey: params.preflight.session.sessionKey,
           rowId: recoveryAction.rowId,
           nowMs: startedAt,
           patch: {
@@ -848,7 +848,7 @@ ${lines.join("\n")}`;
         });
       } else if (recoveryAction.action === "retry") {
         await updatePlannerRow({
-          sessionKey,
+          sessionKey: params.preflight.session.sessionKey,
           rowId: recoveryAction.rowId,
           nowMs: startedAt,
           patch: {
