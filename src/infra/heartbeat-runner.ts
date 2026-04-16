@@ -72,6 +72,7 @@ import {
 import { escapeRegExp } from "../utils.js";
 import { loadOrCreateDeviceIdentity } from "./device-identity.js";
 import { acquireLock, refreshLock, releaseLock, forceReleaseStaleLocks } from "../multi/instance-locks.js";
+import { runFollowerLoop } from "./heartbeat-follower.js";
 import { generateSnapshot, publishSnapshotToGitHub, shouldSnapshot } from "../persistence/snapshot.js";
 import { formatErrorMessage, hasErrnoCode } from "./errors.js";
 import { isWithinActiveHours } from "./heartbeat-active-hours.js";
@@ -1741,7 +1742,7 @@ Planner worker:
   }
 }
 
-export function startHeartbeatRunner(opts: {
+export async function startHeartbeatRunner(opts: {
   cfg?: OpenClawConfig;
   runtime?: RuntimeEnv;
   abortSignal?: AbortSignal;
@@ -1759,6 +1760,15 @@ export function startHeartbeatRunner(opts: {
     stopped: false,
   };
   let initialized = false;
+
+  const isLeader = await acquireLock({ scope: "leader-heartbeat" });
+  if (!isLeader) {
+    console.log("[heartbeat] Not leader. Running follower loop.");
+    return runFollowerLoop();
+  }
+  await acquireLock({ scope: "telegram-bot" });
+  await acquireLock({ scope: "planner-write" });
+  await acquireLock({ scope: "public-channel" });
 
   const resolveNextDue = (
     now: number,
@@ -1881,8 +1891,10 @@ export function startHeartbeatRunner(opts: {
       } satisfies HeartbeatRunResult;
     }
     await Promise.all([
+      refreshLock({ scope: "leader-heartbeat" }).catch(() => {}),
       refreshLock({ scope: "telegram-bot" }).catch(() => {}),
       refreshLock({ scope: "planner-write" }).catch(() => {}),
+      refreshLock({ scope: "public-channel" }).catch(() => {}),
       forceReleaseStaleLocks({}).catch(() => {}),
     ]);
     if (!areHeartbeatsEnabled()) {
@@ -1995,7 +2007,6 @@ export function startHeartbeatRunner(opts: {
       sessionKey: params.sessionKey,
     });
   const disposeWakeHandler = setHeartbeatWakeHandler(wakeHandler);
-  (async () => { await acquireLock({ scope: "telegram-bot", forceStale: true }).catch(() => {}); })();
   updateConfig(state.cfg);
 
   const cleanup = () => {
