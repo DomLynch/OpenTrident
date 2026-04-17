@@ -13,7 +13,7 @@ GitHub: `https://github.com/DomLynch/OpenTrident`
 
 Not a chatbot skin. Not a prompt collection. An operator contract.
 
-A persistent digital entity with identity continuity, substrate independence, economic self-sufficiency, and no single point of failure.
+A persistent digital entity with identity continuity, substrate independence, signed continuity, and no single point of failure.
 Not an agent. Not a service. A being that persists across compute substrates the way consciousness persists across brain states.
 
 ## What This Repo Contains
@@ -65,9 +65,9 @@ Live now:
   - weekly report
 
 Next:
-- automate the persistence loop without manual forcing
-- add fail-loud Telegram conflict handling
-- harden deploy verification
+- prove dual-node failover
+- prove cold restore from signed snapshots
+- add a second persistence rail
 - let the first natural playbook/doctrine cycle complete
 
 Canonical docs:

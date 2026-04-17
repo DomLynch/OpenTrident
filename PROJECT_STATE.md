@@ -3,7 +3,8 @@
 ## Decision
 
 OpenTrident is live again as a memory-backed founder operator on one primary VPS.
-The current job is not more surface area. The current job is persistence hardening, compounding judgment, and fail-loud operations.
+The current job is survivability first: persistence hardening, failover proof, restore proof, and compounding judgment.
+Economic self-sufficiency is explicitly frozen until survival is proven.
 
 ## Live Reality
 
@@ -56,6 +57,8 @@ The current job is not more surface area. The current job is persistence hardeni
 - specialized forks exist in code but only `general` is active
 - Telegram fail-loud behavior needs live soak proof after deploy
 - `deploy.sh` hardening needs live deploy proof after the new Brain/Telegram checks
+- failover exists in code, but no live second-node takeover drill has happened yet
+- cold restore exists in code, but no blank-node restore drill has happened yet
 - compounding loop needs earned artifacts again after bootstrap cleanup:
   - playbooks
   - doctrine
@@ -80,11 +83,11 @@ Historical plans and superseded specs live in `archive/2026-04-cleanup/`.
 
 ## Current Priorities
 
-1. keep snapshots/playbooks/doctrine/weekly reports running automatically
-2. prove Bain and other stable identity facts survive topic drift
-3. harden deploy verification so Brain memory cannot silently disappear again
-4. prove the first natural compounding cycle without manual bootstrap
-5. run the dual-node failover + cold-restore drill in `FAILOVER_RESTORE_DRILL.md`
+1. run the dual-node failover + cold-restore drill in `FAILOVER_RESTORE_DRILL.md`
+2. prove Telegram and Nostr identity continuity under leader loss
+3. keep snapshots/playbooks/doctrine/weekly reports running automatically
+4. prove Bain and other stable identity facts survive topic drift
+5. add a second persistence rail and provider path after the drill passes
 
 ## Non-Priorities
 
@@ -94,7 +97,10 @@ Do not optimize for:
 - more planning markdown
 - more providers before failover is solid
 - economics before persistence is trustworthy
+- wallet or cost-ledger expansion
+- subscriber gating or paid signal channels
+- acquisition-demo framing
 
 ## One-Sentence Summary
 
-OpenTrident is now a live memory-backed operator with real persistence rails and a pinned founder-memory core, but the next win is operational trust: make compounding artifacts appear naturally and keep the system lean.
+OpenTrident is now a live memory-backed operator with real persistence rails and a pinned founder-memory core, but the next win is survival proof: fail over cleanly, restore cleanly, then earn compounding artifacts naturally.
