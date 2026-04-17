@@ -8,8 +8,8 @@ const COMMAND_REGEX = /^\/?publish(?:\s|$)/i;
 
 type PublishResult = { ok: true; messageId: string } | { ok: false; error: string };
 
-function parsePublishCommand(raw: string): { content: string } | null {
-  const trimmed = raw.trim();
+function parsePublishCommand(raw: string | null | undefined): { content: string } | null {
+  const trimmed = typeof raw === "string" ? raw.trim() : "";
   const commandMatch = trimmed.match(COMMAND_REGEX);
   if (!commandMatch) return null;
   const rest = trimmed.slice(commandMatch[0].length).trim();

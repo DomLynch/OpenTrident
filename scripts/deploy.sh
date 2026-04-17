@@ -92,6 +92,43 @@ done
 if [[ "$HEALTH_OK" == "true" ]]; then
   echo ""
   echo "[OK] Deploy complete — healthy."
+
+  MEMORY_SLOT_OK=$(docker exec opentrident-gateway sh -lc "node -e \"const fs=require('fs'); const cfg=JSON.parse(fs.readFileSync('/home/node/.opentrident/opentrident.json','utf8')); process.stdout.write(cfg.plugins?.slots?.memory === 'brain-memory-adapter' ? 'ok' : 'fail');\"" 2>&1 | tail -n 1)
+  if [[ "$MEMORY_SLOT_OK" != "ok" ]]; then
+    echo "  [ERR] Brain memory slot is not bound to brain-memory-adapter. Rolling back."
+    if [[ -n "$PREV_TAG" ]]; then
+      sed -i "s/OPENTRIDENT_IMAGE=.*/OPENTRIDENT_IMAGE=${PREV_TAG}/" .env
+    fi
+    docker compose -f "$COMPOSE_FILE" up -d
+    echo "[ERR] Deploy failed — brain memory slot check."
+    exit 1
+  fi
+  echo "  brain-slot: ok"
+
+  CORE_MEMORY_OK=$(docker exec opentrident-gateway sh -lc "test -f /opt/OpenTrident/CORE_MEMORY.md && echo ok" 2>&1 | tail -n 1)
+  if [[ "$CORE_MEMORY_OK" != "ok" ]]; then
+    echo "  [ERR] Missing CORE_MEMORY.md in identity mount. Rolling back."
+    if [[ -n "$PREV_TAG" ]]; then
+      sed -i "s/OPENTRIDENT_IMAGE=.*/OPENTRIDENT_IMAGE=${PREV_TAG}/" .env
+    fi
+    docker compose -f "$COMPOSE_FILE" up -d
+    echo "[ERR] Deploy failed — core memory check."
+    exit 1
+  fi
+  echo "  core-memory: ok"
+
+  sleep 2
+  if ! docker logs --tail 120 opentrident-gateway 2>&1 | grep -q 'brain-memory-adapter'; then
+    echo "  [ERR] brain-memory-adapter did not load at startup. Rolling back."
+    if [[ -n "$PREV_TAG" ]]; then
+      sed -i "s/OPENTRIDENT_IMAGE=.*/OPENTRIDENT_IMAGE=${PREV_TAG}/" .env
+    fi
+    docker compose -f "$COMPOSE_FILE" up -d
+    echo "[ERR] Deploy failed — brain plugin startup check."
+    exit 1
+  fi
+  echo "  brain-plugin: ok"
+
   docker images opentrident --format "  {{.Repository}}:{{.Tag}}  {{.Size}}"
   docker ps --filter "name=${COMPOSE_PROJECT}" --format "  {{.Names}}: {{.Status}}"
 else
