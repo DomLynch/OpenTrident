@@ -99,7 +99,7 @@ Do not optimize for:
 - economics before persistence is trustworthy
 - wallet or cost-ledger expansion
 - subscriber gating or paid signal channels
-- acquisition-demo framing
+- "pitch" / "buyer" / "demo that sells" framing — Dom runs his own narrative
 
 ## One-Sentence Summary
 
