@@ -50,29 +50,32 @@ OpenTrident sits on top of Dom Lynch's broader agent stack:
 
 ## Current Build Focus
 
-OpenTrident is past the identity-only stage.
+OpenTrident is live as a memory-backed operator on one primary VPS.
 
 Live now:
-- memory-backed runtime
 - Telegram surface
+- Brain memory recall
 - MiniMax primary with GLM fallback
-- attention v2
-- Gmail attention v1
-- repo attention v1
-- GitHub attention v1
-- planner-orchestrator v1
-- goal origination v1
+- Gmail, repo, GitHub, and market attention
+- planner-orchestrator + trust telemetry
+- manual proof of persistence artifacts:
+  - signed snapshot release
+  - playbook
+  - doctrine entry
+  - weekly report
 
 Next:
-- richer bounded worker spawning
-- market/news signal inbox
-- recovery/escalation hardening
-- autonomous task loop v1
+- automate the persistence loop without manual forcing
+- add fail-loud Telegram conflict handling
+- harden deploy verification
+- let the first natural playbook/doctrine cycle complete
 
-See:
+Canonical docs:
 - `PROJECT_STATE.md`
-- `PLANNER_ORCHESTRATOR_SPEC.md`
-- `UPSTREAM_EXTRACTIONS.md`
+- `OPERATIONS.md`
+- `ENDGAME_48H.md`
+
+Historical plans and superseded specs live in `archive/2026-04-cleanup/`.
 
 ## License
 

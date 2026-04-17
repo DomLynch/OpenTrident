@@ -68,43 +68,32 @@ docker compose -f docker-compose.vps.yml up -d
 sleep 15 && curl http://127.0.0.1:18889/healthz
 ```
 
-### Current Image
+### Current Runtime Reality
 
-**Primary (VPS2 — 87.99.148.214):**
-```
-opentrident:2026.4.15-r134636  — healthy (gateway + CLI running)
-opentrident:latest               — same as above
-```
+**Primary VPS (49.12.7.18):**
+- runtime repo: `/opt/opentrident`
+- identity repo: `/opt/OpenTrident`
+- persistent state: `/opt/opentrident-data/config`
+- live containers: `opentrident-gateway`, `opentrident-cli`
 
-**Standby (VPS1 — 49.12.7.18):** All containers stopped. Ready for decommission.
+**Old migration target (87.99.148.214):**
+- removed from Hetzner
+- no current standby host
 
-### Multi-Host Operations
+### Storage Hygiene
 
 ```bash
-# VPS1 (old, standby)
-VPS1_HOST="49.12.7.18"
-VPS2_HOST="87.99.148.214"
-SSH_KEY="~/.ssh/binance_futures_tool"
+# Check Docker usage
+docker system df
 
-# Check VPS2 (new primary) health
-ssh -i $SSH_KEY root@$VPS2_HOST "curl -s http://127.0.0.1:18889/healthz"
+# Hard prune build cache
+docker builder prune -af
 
-# Check VPS1 (old standby) containers
-ssh -i $SSH_KEY root@$VPS1_HOST docker ps --format "{{.Names}}: {{.Status}}"
+# Remove stale images older than 48h
+docker image prune -af --filter "until=48h"
 
-# Start containers on VPS1 (if needed for rollback)
-ssh -i $SSH_KEY root@$VPS1_HOST "cd /opt/opentrident && docker compose -f docker-compose.vps.yml up -d"
-
-# Stop containers on VPS1 (before starting on VPS2 to avoid Telegram conflict)
-ssh -i $SSH_KEY root@$VPS1_HOST docker stop opentrident-gateway opentrident-cli
-
-# Transfer Docker image from VPS1 to VPS2
-ssh -i $SSH_KEY root@$VPS1_HOST "docker save opentrident:2026.4.15-r134636 -o /tmp/opentrident.tar"
-rsync -az -e "ssh -i $SSH_KEY" $VPS1_HOST:/tmp/opentrident.tar root@$VPS2_HOST:/tmp/
-ssh -i $SSH_KEY root@$VPS2_HOST "docker load -i /tmp/opentrident.tar"
-
-# RSync state files from VPS1 to VPS2
-rsync -az -e "ssh -i $SSH_KEY" $VPS1_HOST:/opt/opentrident-data/config/ root@$VPS2_HOST:/opt/opentrident-data/config/
+# Remove dead volumes
+docker volume prune -f
 ```
 
 ## Troubleshooting
@@ -154,6 +143,9 @@ docker exec opentrident-gateway cat /home/node/.opentrident/market-attention-v1.
 | `autonomy-config-v1.json` | Domain autonomy levels | cron to S3 |
 | `planner-v1.json` | Active planner rows | cron to S3 |
 | `market-attention-v1.json` | Market signal cache | not critical |
+| `playbooks/playbook-store.json` | Compounding procedures | keep |
+| `doctrine-v1.json` | promoted playbooks | keep |
+| `snapshot-head` + `snapshots/` | signed continuity chain | keep |
 
 ## Monitoring
 
@@ -178,6 +170,15 @@ The planner-recovery module automatically detects stale runs (>6h) and marks the
 1. Stop containers: `docker compose -f docker-compose.vps.yml down`
 2. Restore state files from backup to `/home/node/.opentrident/`
 3. Start containers: `docker compose -f docker-compose.vps.yml up -d`
+
+### Snapshot Proof
+```bash
+# Check current snapshot head
+cat /opt/opentrident-data/config/snapshot-head
+
+# List snapshot bundles
+find /opt/opentrident-data/config/snapshots -maxdepth 1 -mindepth 1 -type d | sort
+```
 
 ## Secrets
 

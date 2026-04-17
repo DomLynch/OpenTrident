@@ -61,13 +61,13 @@ A bot that's dead is better than a bot that's silently been stolen.
 
 ## Current Bugs (fix in Move 0)
 
-1. **`sessionKey is not defined`** — heartbeat-runner crashes every 30 min. The sprint wiring for snapshots + weekly report references `sessionKey` in a scope where it's not available. Snapshots and weekly reports do not fire automatically. Telegram message handling is unaffected.
+1. **Arweave weekly anchor still fails** — snapshot bundle generation and GitHub release publish now work, but the weekly anchor path currently returns `400 Bad Request`. The persistence loop is partially live, not fully closed.
 
-2. **Snapshots show `"none"`** — hourly gate never fires because the heartbeat crashes before reaching it (caused by bug #1).
+2. **Compounding loop is only bootstrapped once** — snapshot, playbook, doctrine, and weekly report now exist, but they were manually forced. Natural planner-driven accumulation is still not proven.
 
-3. **Playbook counters are zero** — compounding loop is wired but no real planner cycles have completed since the sprint deploy.
+3. **Deploy hardening still incomplete** — `deploy.sh` still needs the full post-deploy verification pack: health, numpy, Lucid recall, template presence, and Telegram exclusivity. Partial verification exists; finish the full five-check contract.
 
-4. **Orphan containers from old compose** — VPS has 3 orphan containers (coordinator + 2 workers from `docker-compose.multi.yml`) alongside the 2 active containers (gateway + CLI from `docker-compose.vps.yml`). Clean up.
+4. **Telegram fail-loud path still incomplete** — startup conflict probe + escalating 409 handling are still pending. The live bot is clean now, but the runtime should refuse to run silently if another poller steals the token.
 
 ---
 
@@ -84,7 +84,7 @@ A bot that's dead is better than a bot that's silently been stolen.
 | Brain | `/root/brain-live/` (mounted into container) |
 | Model | MiniMax-M2.7-highspeed (primary) + GLM (fallback) |
 | Image | `opentrident:latest` (rebuilt 2026-04-16 with Brain runtime) |
-| 87.99.148.214 | DEAD — old migration target, unreachable. Decommission in Hetzner console (server ID 127036753). |
+| 87.99.148.214 | Deleted — old migration target is gone. |
 
 ---
 
