@@ -22,13 +22,18 @@ The current job is not more surface area. The current job is persistence hardeni
 ## Proven This Week
 
 - Brain memory recall works again in production
+- stable founder facts now have a dedicated `CORE_MEMORY.md` rail
 - old Telegram token was revoked and the live bot is polling cleanly
-- compounding loop was bootstrapped with real artifacts:
-  - one signed snapshot bundle
-  - one GitHub snapshot release
-  - one playbook
-  - one promoted doctrine entry
-  - one weekly report
+- signed snapshots and bootstrap manifests are live
+- dashboard now renders only active production rails
+- dead ceremony was stripped:
+  - Arweave anchor stub
+  - daily/monthly reflection loop
+  - empty world-model loop
+  - empty dashboard cards
+- strategic initiator is down to the two detectors that still matter:
+  - review cadence
+  - stale commitments
 - Docker storage on VPS was cleaned hard:
   - image footprint reduced to ~7 GB
   - build cache reduced to 0 B
@@ -38,20 +43,23 @@ The current job is not more surface area. The current job is persistence hardeni
 
 - OpenTrident is not an identity-only spec anymore
 - Brain-backed recall is a real moat
+- stable identity facts now have a pinned rail outside semantic recall
 - persistence primitives now exist in production state, not just in code
-- doctrine and playbook promotion are wired
+- doctrine and playbook promotion are wired, but must be earned again naturally
 - Nostr identity exists
 - dashboard is live
 
 ## What Is Not Done
 
 - automatic persistence still needs to prove itself without manual forcing
-- Arweave anchoring is now gated honestly, but a real signed uploader path still is not configured
 - weekly reports now read live state in fallback mode, but the autonomous weekly cycle still needs live proof
 - specialized forks exist in code but only `general` is active
-- world model is effectively empty
 - Telegram fail-loud behavior needs live soak proof after deploy
 - `deploy.sh` hardening needs live deploy proof after the new Brain/Telegram checks
+- compounding loop needs earned artifacts again after bootstrap cleanup:
+  - playbooks
+  - doctrine
+  - weekly reports
 
 ## Canonical Files
 
@@ -60,6 +68,7 @@ Keep these as living truth:
 - `AGENTS.md`
 - `CLAUDE.md`
 - `SYSTEM_PROMPT.md`
+- `CORE_MEMORY.md`
 - `README.md`
 - `PROJECT_STATE.md`
 - `OPERATIONS.md`
@@ -71,8 +80,8 @@ Historical plans and superseded specs live in `archive/2026-04-cleanup/`.
 ## Current Priorities
 
 1. keep snapshots/playbooks/doctrine/weekly reports running automatically
-2. harden deploy verification so Brain memory cannot silently disappear again
-3. add Telegram conflict fail-loud behavior
+2. prove Bain and other stable identity facts survive topic drift
+3. harden deploy verification so Brain memory cannot silently disappear again
 4. prove the first natural compounding cycle without manual bootstrap
 5. only then activate specialized forks beyond `general`
 
@@ -87,4 +96,4 @@ Do not optimize for:
 
 ## One-Sentence Summary
 
-OpenTrident is now a live memory-backed operator with the first real compounding artifacts in state, but the next win is operational trust: make persistence automatic, loud on failure, and boring to maintain.
+OpenTrident is now a live memory-backed operator with real persistence rails and a pinned founder-memory core, but the next win is operational trust: make compounding artifacts appear naturally and keep the system lean.
