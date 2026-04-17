@@ -1,5 +1,7 @@
 # OpenTrident Operations Runbook
 
+This repo is the docs/runbook layer. All executable commands target the runtime repo at `/Users/domininclynch/Desktop/OpenTrident-runtime` locally or `/opt/opentrident` on VPS.
+
 ## One-Time Setup
 
 ```bash
@@ -34,14 +36,14 @@ ssh -i $SSH_KEY_PATH root@$VPS_HOST "docker logs opentrident-gateway -f --tail 5
 
 ### Standard Deploy
 
-**Always use `scripts/deploy.sh`** — it handles build with layer caching, image tagging, retention pruning, and cache cleanup in one step.
+**Always use the runtime repo's `scripts/deploy.sh`** — it handles build with layer caching, image tagging, retention pruning, and cache cleanup in one step.
 
 ```bash
 # From your Mac, deploy via SSH:
 ssh -i $SSH_KEY_PATH root@$VPS_HOST "cd /opt/opentrident && bash scripts/deploy.sh"
 
-# Or run locally if you have Docker access to the VPS:
-./scripts/deploy.sh
+# Or run from the runtime repo locally if you have Docker access to the VPS:
+cd /Users/domininclynch/Desktop/OpenTrident-runtime && ./scripts/deploy.sh
 ```
 
 The script automatically:
@@ -193,7 +195,8 @@ find /opt/opentrident-data/config/snapshots -maxdepth 1 -mindepth 1 -type d | so
 ### Testing changes
 
 ```bash
-# 1. Commit and push changes to the runtime repo
+# 1. Commit and push changes in the runtime repo
+cd /Users/domininclynch/Desktop/OpenTrident-runtime
 git add <changed-files> && git commit --no-verify -m "feat: description"
 git push opentrident opentrident-prune:opentrident-prune
 

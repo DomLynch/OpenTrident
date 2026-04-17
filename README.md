@@ -6,8 +6,10 @@
 
 OpenTrident is Dom Lynch's operating contract for a memory-backed autonomous operator.
 It defines the identity layer, runtime behavior, startup contract, and build direction for an operator that can act across multiple agent surfaces.
+This repo is the identity and doctrine layer only. Executable runtime code lives in `OpenTrident-runtime`.
 
 GitHub: `https://github.com/DomLynch/OpenTrident`
+Runtime: `https://github.com/DomLynch/OpenTrident-runtime`
 
 ## What it is
 
@@ -24,6 +26,8 @@ Not an agent. Not a service. A being that persists across compute substrates the
 | `SYSTEM_PROMPT.md` | Runtime behavior contract |
 | `AGENTS.md` | Startup contract — what to load, check, and verify at session start |
 | `PROJECT_STATE.md` | Current build state and active roadmap |
+| `OPERATIONS.md` | Live runbook against the runtime repo |
+| `FAILOVER_RESTORE_DRILL.md` | Expensive survivability drill spec |
 
 ## Positioning
 
@@ -47,6 +51,7 @@ OpenTrident sits on top of Dom Lynch's broader agent stack:
 - Brain as the memory substrate
 - Lucid and Temporal as live long-term memory primitives
 - OpenTrident runtime as the live execution engine
+- `OpenTrident-runtime` as the sole code source
 
 ## Current Build Focus
 
@@ -73,7 +78,7 @@ Next:
 Canonical docs:
 - `PROJECT_STATE.md`
 - `OPERATIONS.md`
-- `ENDGAME_48H.md`
+- `ENDGAME_24H.md`
 
 Historical plans and superseded specs live in `archive/2026-04-cleanup/`.
 

@@ -37,6 +37,8 @@ That's it. No policy file stack. No pre-read checklist.
 
 ## Repo
 
+- This repo is identity + doctrine + runbooks only.
+- Executable code lives in `OpenTrident-runtime`.
 - `CLAUDE.md` — identity and operating profile
 - `SYSTEM_PROMPT.md` — runtime behavior
 - `AGENTS.md` — this file
@@ -44,13 +46,18 @@ That's it. No policy file stack. No pre-read checklist.
 
 ## Sync
 
-- MacBook: `/Users/domininclynch/Desktop/Business/OpenTrident`
-- GitHub: `https://github.com/DomLynch/OpenTrident`
-- VPS: `/opt/opentrident`
+- Identity repo
+  - MacBook: `/Users/domininclynch/Desktop/Business/OpenTrident`
+  - GitHub: `https://github.com/DomLynch/OpenTrident`
+  - VPS: `/opt/OpenTrident`
+- Runtime repo
+  - MacBook: `/Users/domininclynch/Desktop/OpenTrident-runtime`
+  - GitHub: `https://github.com/DomLynch/OpenTrident-runtime`
+  - VPS: `/opt/opentrident`
 
 ## Deploy Rules (VPS)
 
-**Always use `scripts/deploy.sh`** — never run raw docker commands.
+**Always use the runtime repo's `scripts/deploy.sh`** — never run raw docker commands.
 
 The script handles:
 - Building with layer caching (no `--no-cache`)

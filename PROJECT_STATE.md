@@ -24,6 +24,7 @@ Economic self-sufficiency is explicitly frozen until survival is proven.
 
 - Brain memory recall works again in production
 - stable founder facts now have a dedicated `CORE_MEMORY.md` rail
+- identity repo is now docs + doctrine only; runtime code truth is `OpenTrident-runtime`
 - old Telegram token was revoked and the live bot is polling cleanly
 - signed snapshots and bootstrap manifests are live
 - dashboard now renders only active production rails
@@ -42,7 +43,8 @@ Economic self-sufficiency is explicitly frozen until survival is proven.
 
 ## What Is Real
 
-- OpenTrident is not an identity-only spec anymore
+- identity repo is docs + doctrine only
+- runtime code truth lives in `OpenTrident-runtime` and `/opt/opentrident`
 - Brain-backed recall is a real moat
 - stable identity facts now have a pinned rail outside semantic recall
 - persistence primitives now exist in production state, not just in code
@@ -76,7 +78,6 @@ Keep these as living truth:
 - `PROJECT_STATE.md`
 - `OPERATIONS.md`
 - `ENDGAME_24H.md`
-- `ENDGAME_48H.md`
 - `FAILOVER_RESTORE_DRILL.md`
 
 Historical plans and superseded specs live in `archive/2026-04-cleanup/`.
