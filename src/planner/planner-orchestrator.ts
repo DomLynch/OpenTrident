@@ -1,5 +1,6 @@
 import type { SessionEntry } from "../config/sessions/types.js";
 import type { SystemEvent } from "../infra/system-events.js";
+import { CONTEXT_BUDGET, truncateToBudget } from "../config/context-budget.js";
 import { getAutonomyLevel, getDomainAutonomyConfig, requiresConfirmation } from "./autonomy-ladder.js";
 import { originatePlannerGoal } from "./goal-origination.js";
 import { buildPlannerInbox } from "./planner-inbox.js";
@@ -22,7 +23,15 @@ function trimEvidence(text: string, maxChars = 160): string {
   return `${compact.slice(0, Math.max(0, maxChars - 1)).trimEnd()}…`;
 }
 
-async function buildPromptBlock(params: {
+function pushBudgetedSection(lines: string[], heading: string, body: string[], maxChars: number): void {
+  if (body.length === 0) {
+    return;
+  }
+  lines.push("");
+  lines.push(truncateToBudget([heading, ...body].join("\n"), maxChars));
+}
+
+export async function buildPromptBlock(params: {
   decision: PlannerDecision;
   previousHeartbeatText?: string;
   similarSessions?: readonly { sessionKey: string; title: string; snippet: string; score: number }[];
@@ -85,52 +94,70 @@ async function buildPromptBlock(params: {
   try {
     const trustMetrics = await getTrustMetrics();
     if (trustMetrics.totalActions > 0) {
-      lines.push("");
-      lines.push("Trust telemetry (last 7 days):");
       const approvalRate =
         trustMetrics.totalActions > 0
           ? ((trustMetrics.approvedActions / trustMetrics.totalActions) * 100).toFixed(0)
           : "0";
-      lines.push(`- Approval rate: ${approvalRate}% (${trustMetrics.totalActions} actions)`);
+      pushBudgetedSection(
+        lines,
+        "Trust telemetry (last 7 days):",
+        [`- Approval rate: ${approvalRate}% (${trustMetrics.totalActions} actions)`],
+        CONTEXT_BUDGET.trustContext,
+      );
     }
   } catch {
     // Trust telemetry not available
   }
 
   if (params.similarSessions && params.similarSessions.length > 0) {
-    lines.push("");
-    lines.push("Similar past sessions (for context — avoid repeating approaches that failed):");
+    const section = [];
     for (const s of params.similarSessions.slice(0, 3)) {
       const snippet = s.snippet.length > 120 ? `${s.snippet.slice(0, 119)}…` : s.snippet;
-      lines.push(`- [${s.sessionKey}] ${s.title}: ${snippet}`);
+      section.push(`- [${s.sessionKey}] ${s.title}: ${snippet}`);
     }
+    pushBudgetedSection(
+      lines,
+      "Similar past sessions (for context — avoid repeating approaches that failed):",
+      section,
+      CONTEXT_BUDGET.similarSessions,
+    );
   }
 
   const doctrine = await getDoctrine(decision.goal.domain).catch(() => []);
   if (doctrine.length > 0) {
-    lines.push("");
-    lines.push("Doctrine (always applies — treat as operating principle):");
+    const section = [];
     for (const d of doctrine) {
-      lines.push(`- ${d.name}: ${d.procedureDigest}`);
+      section.push(`- ${d.name}: ${d.procedureDigest}`);
     }
+    pushBudgetedSection(
+      lines,
+      "Doctrine (always applies — treat as operating principle):",
+      section,
+      CONTEXT_BUDGET.doctrine,
+    );
   }
 
   if (params.relevantPlaybooks && params.relevantPlaybooks.length > 0) {
-    lines.push("");
-    lines.push("Proven playbooks for this pattern (apply the winning procedure — do not reinvent):");
+    const section = [];
     for (const p of params.relevantPlaybooks.slice(0, 3)) {
       const uses = p.successCount + p.failureCount;
       const rate = uses > 0 ? ((p.successCount / uses) * 100).toFixed(0) : "new";
       const procedure = p.procedure.length > 400
         ? `${p.procedure.slice(0, 399)}…`
         : p.procedure;
-      lines.push(`- [${p.id}] ${p.name} (${rate}% success over ${uses} uses)`);
-      lines.push(`  ${procedure.replace(/\n/g, "\n  ")}`);
+      section.push(`- [${p.id}] ${p.name} (${rate}% success over ${uses} uses)`);
+      section.push(`  ${procedure.replace(/\n/g, "\n  ")}`);
     }
-    lines.push("- If one of these playbooks fits, follow it. If none fit, proceed from scratch and a new playbook may be written on success.");
+    section.push("- If one of these playbooks fits, follow it. If none fit, proceed from scratch and a new playbook may be written on success.");
+    pushBudgetedSection(
+      lines,
+      "Proven playbooks for this pattern (apply the winning procedure — do not reinvent):",
+      section,
+      CONTEXT_BUDGET.playbooks,
+    );
   }
 
-  return lines.join("\n");
+  return truncateToBudget(lines.join("\n"), CONTEXT_BUDGET.totalCeiling);
 }
 
 function selectTopPlannerCandidate(candidates: readonly PlannerItem[]): PlannerItem | undefined {
