@@ -51,8 +51,6 @@ import { spawnPlannerReadonlyTask } from "../planner/planner-spawn.js";
 import { readPlannerRows, recordPlannerDecision, updatePlannerRow } from "../planner/planner-state.js";
 import { generateStrategicGoals } from "../planner/strategic-initiator.js";
 import { buildMemoryContext } from "../planner/planner-memory.js";
-import { buildCostContext } from "../economic/cost-ledger.js";
-import { buildEconomicContext as buildWalletContext } from "../economic/wallet.js";
 import { processWorkerResults } from "../planner/planner-result-handler.js";
 import { isSpawnRateLimited } from "../planner/planner-security.js";
 import { getQueueSize } from "../process/command-queue.js";
@@ -782,16 +780,6 @@ ${plannerDecision.promptBlock}`;
     }
   } catch {
     // Memory not available
-  }
-
-  try {
-    const costCtx = await buildCostContext();
-    const walletCtx = await buildWalletContext();
-    if (costCtx || walletCtx) {
-      prompt += `\n\n${[costCtx, walletCtx].filter(Boolean).join("\n")}`;
-    }
-  } catch {
-    // Economic context not available
   }
 
   if (recoveryActions.length > 0) {

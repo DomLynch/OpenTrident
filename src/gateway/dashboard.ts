@@ -4,8 +4,6 @@ import { getDoctrine } from "../planner/doctrine-manager.js";
 import { queryDecisions } from "../planner/memory-query.js";
 import { queryLastOccurrence } from "../planner/memory-query.js";
 import { getPlaybookStats } from "../planner/playbook-manager.js";
-import { buildCostContext } from "../economic/cost-ledger.js";
-import { loadWalletKey, getWalletBalance } from "../economic/wallet.js";
 import { getNostrPubkey } from "../social/nostr-publisher.js";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -17,8 +15,6 @@ export async function handleDashboardData(): Promise<Record<string, unknown>> {
   const topPlaybooks = await getPlaybooks({}).catch(() => []);
   const doctrineAll = await getDoctrine("general").catch(() => []);
   const recentDecisions = await queryDecisions({ lookbackDays: 7 }).catch(() => null);
-  const wallet = await loadWalletKey().catch(() => null);
-  const walletBalance = wallet ? await getWalletBalance(wallet.publicKey).catch(() => null) : null;
   const nostr = await getNostrPubkey().catch(() => null);
   const lastWeekly = await queryLastOccurrence({ category: "reflection", keyPattern: "weekly-report:" }).catch(() => null);
   const snapshotHead = await fs.readFile(path.join(resolveStateDir(), "snapshot-head"), "utf8").catch(() => "none");
@@ -48,10 +44,6 @@ export async function handleDashboardData(): Promise<Record<string, unknown>> {
       rejected: recentDecisions.rejected,
       modified: recentDecisions.modified,
     } : null,
-    economic: {
-      walletBalance: walletBalance ?? 0,
-      context: buildCostContext ? buildCostContext() : "n/a",
-    },
     nostr: nostr ? { npub: nostr.npub, hex: nostr.hex } : null,
     lastWeekly: lastWeekly ? lastWeekly.entry.value.slice(0, 1000) : null,
     snapshotHead,
@@ -79,12 +71,11 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
 </head><body>
 <h1>OpenTrident</h1>
 <div class="sub">Live operator dashboard · <span id="ts">—</span></div>
-<div class="grid">
-  <div class="card"><h2>Trust</h2><div class="big"><span id="approval">—</span>%</div><div id="trust-total">—</div></div>
-  <div class="card"><h2>Playbooks</h2><div class="big" id="pb-total">—</div><div>Avg success <span id="pb-rate">—</span>%</div></div>
-  <div class="card"><h2>7-Day Decisions</h2><div class="big" id="dec-total">—</div><div><span id="dec-split">—</span></div></div>
-  <div class="card"><h2>Wallet</h2><div class="big" id="wallet">—</div><div>SOL</div></div>
-  <div class="card" style="grid-column: span 2"><h2>Doctrine</h2><div id="doctrine">—</div></div>
+  <div class="grid">
+    <div class="card"><h2>Trust</h2><div class="big"><span id="approval">—</span>%</div><div id="trust-total">—</div></div>
+    <div class="card"><h2>Playbooks</h2><div class="big" id="pb-total">—</div><div>Avg success <span id="pb-rate">—</span>%</div></div>
+    <div class="card"><h2>7-Day Decisions</h2><div class="big" id="dec-total">—</div><div><span id="dec-split">—</span></div></div>
+    <div class="card" style="grid-column: span 2"><h2>Doctrine</h2><div id="doctrine">—</div></div>
   <div class="card" style="grid-column: span 2"><h2>Top Playbooks</h2><div id="playbooks">—</div></div>
   <div class="card" style="grid-column: span 2"><h2>Identity</h2>
     <div>Nostr: <code id="nostr">—</code></div>
@@ -101,7 +92,6 @@ async function load() {
   if (d.playbooks) { document.getElementById('pb-total').textContent = d.playbooks.total; document.getElementById('pb-rate').textContent = d.playbooks.avgSuccessRate;
     document.getElementById('playbooks').innerHTML = d.playbooks.top.map(p => '<div class="playbook">' + p.name + '<span class="rate' + (p.successRate < 70 ? ' low' : '') + '">' + p.successRate + '% · ' + (p.successCount + p.failureCount) + ' uses</span></div>').join('') || '<div class="sub">No playbooks yet</div>'; }
   if (d.recentDecisions) { document.getElementById('dec-total').textContent = d.recentDecisions.total; document.getElementById('dec-split').textContent = d.recentDecisions.approved + ' approved / ' + d.recentDecisions.rejected + ' rejected / ' + d.recentDecisions.modified + ' modified'; }
-  document.getElementById('wallet').textContent = (d.economic && d.economic.walletBalance ? d.economic.walletBalance : 0).toFixed(4);
   document.getElementById('doctrine').innerHTML = d.doctrine && d.doctrine.length > 0 ? d.doctrine.map(x => '<div class="playbook">[' + x.domain + '] ' + x.name + '<br><span style="color:#888;font-size:12px">' + x.digest + '</span></div>').join('') : '<div class="sub">No doctrine promoted yet</div>';
   if (d.nostr) document.getElementById('nostr').textContent = d.nostr.npub;
   document.getElementById('snap').textContent = d.snapshotHead || 'none';

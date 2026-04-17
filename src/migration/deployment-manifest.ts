@@ -1,7 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { resolveStateDir } from "../config/paths.js";
-import { loadSessionStore } from "../config/sessions/store-load.js";
 import { defaultRuntime } from "../runtime.js";
 
 export type DeploymentManifest = {
@@ -29,11 +28,6 @@ export type DeploymentManifest = {
     marketCache: string;
   };
 
-  economic: {
-    walletAddress?: string;
-    costLedger: string;
-  };
-
   requiredEnvVars: string[];
 
   infrastructure: {
@@ -57,7 +51,7 @@ export async function generateDeploymentManifest(): Promise<DeploymentManifest> 
   const stateDir = resolveStateDir();
   const instanceId = process.env.OPENTRIDENT_INSTANCE_ID ?? "unknown";
 
-  const [systemPrompt, agentsContract, operatingProfile, plannerState, trustTelemetry, autonomyConfig, memoryStore, marketCache, costLedger, composeFile, deployScript] = await Promise.all([
+  const [systemPrompt, agentsContract, operatingProfile, plannerState, trustTelemetry, autonomyConfig, memoryStore, marketCache, composeFile, deployScript] = await Promise.all([
     resolveFileContent("/opt/OpenTrident/SYSTEM_PROMPT.md"),
     resolveFileContent("/opt/OpenTrident/AGENTS.md"),
     resolveFileContent("/opt/OpenTrident/CLAUDE.md"),
@@ -66,16 +60,9 @@ export async function generateDeploymentManifest(): Promise<DeploymentManifest> 
     resolveStateFile("autonomy-config-v1.json"),
     resolveStateFile("memory-v1.json"),
     resolveStateFile("market-attention-v1.json"),
-    resolveStateFile("cost-ledger-v1.json"),
     resolveFileContent("/opt/opentrident/docker-compose.vps.yml"),
     resolveFileContent("/opt/opentrident/scripts/deploy.sh"),
   ]);
-
-  let walletAddress: string | undefined;
-  try {
-    const sessionStore = await loadSessionStore();
-    walletAddress = (sessionStore as any)?.economic?.walletAddress;
-  } catch {}
 
   const dockerImage = process.env.OPENTRIDENT_IMAGE ?? "opentrident:latest";
 
@@ -107,10 +94,6 @@ export async function generateDeploymentManifest(): Promise<DeploymentManifest> 
       memoryStore: memoryStore || "{}",
       marketCache: marketCache || "{}",
     },
-    economic: {
-      walletAddress,
-      costLedger: costLedger || "{}",
-    },
     requiredEnvVars,
     infrastructure: {
       currentHost: process.env.HOST_IP ?? "49.12.7.18",
@@ -137,7 +120,6 @@ export function validateManifest(manifest: unknown): manifest is DeploymentManif
   if (!m.identity || typeof m.identity !== "object") return false;
   if (!m.runtime || typeof m.runtime !== "object") return false;
   if (!m.state || typeof m.state !== "object") return false;
-  if (!m.economic || typeof m.economic !== "object") return false;
   if (!Array.isArray(m.requiredEnvVars)) return false;
   if (!m.infrastructure || typeof m.infrastructure !== "object") return false;
   return true;
