@@ -30,10 +30,32 @@ Every `deploy.sh` run must end with a post-deploy verification:
 2. `python3 -c "import numpy"` passes (add to deploy.sh)
 3. Brain memory recall returns non-empty (add to deploy.sh)
 4. All required templates exist (add to deploy.sh)
+5. Telegram token conflict check: `getUpdates?timeout=0` returns `ok: true`, not 409.
 
 ### Rule 4 — State lives outside the container
 
 All persistent state is in `/opt/opentrident-data/config/` (mounted volume). The container is disposable. State is not. If a deploy destroys state, that's a P0 incident.
+
+### Rule 5 — Telegram token is exclusive to OpenTrident
+
+On 2026-04-17, DomCode was given OpenTrident's Telegram bot token during a botched "integration." DomCode grabbed every incoming message and returned them as task queue entries ("Queued ✓ — task 01KPCWZQ / Project: domcode"). OpenTrident got 409 Conflict every 30s and couldn't read anything. Dom had to revoke the token via BotFather.
+
+**This must never happen again.**
+
+- **One bot, one token, one poller.** The OpenTrident bot (`@DominicClaw_bot`) is polled ONLY by the gateway container on VPS1. No other machine, no other process, no other service.
+- **The token lives in `/opt/opentrident/.env` ONLY.** Any other file containing `TELEGRAM_BOT_TOKEN=8665...` is a config smell and must be deleted or set to a placeholder.
+- **If another system needs to talk through the bot, it goes through OpenTrident's HTTP API** — not by grabbing the token and polling directly. This is the "builder fork" / "DomCode integration" pattern in Move 2.
+- **Startup token-conflict check (Move 0 hardening):** before the gateway starts the Telegram provider, call `getUpdates?timeout=0&offset=-1` once. If 409 → log `CRITICAL: Another process is polling this bot token — refuse to start` and exit with a non-zero code. Docker's `restart: always` + this exit loop means the gateway will fail loudly and visibly on the dashboard instead of silently retrying forever.
+- **When re-integrating DomCode (or any new bot-speaking service):** give it its OWN Telegram bot via BotFather, OR have it talk through OpenTrident's HTTP API. NEVER share the token.
+
+### Rule 6 — Fail loud on conflict, not silent retry
+
+The 30s retry loop on 409 masks the problem. Every minute the bot appears "alive" while actually being hijacked. Change retry logic:
+- First 409 → log at WARN
+- Three consecutive 409s → log at ERROR + surface to dashboard
+- Ten consecutive 409s → exit process with code 42 (let Docker restart trigger human attention)
+
+A bot that's dead is better than a bot that's silently been stolen.
 
 ---
 
@@ -96,6 +118,8 @@ After the health check passes (step 9), add:
 
 ```bash
 echo "[10/10] Post-deploy verification..."
+
+# Brain runtime
 NUMPY_OK=$(docker exec opentrident-gateway python3 -c "import numpy; print('ok')" 2>&1)
 if [[ "$NUMPY_OK" != "ok" ]]; then
   echo "[ERR] Brain runtime missing (numpy). Rolling back."
@@ -103,23 +127,101 @@ if [[ "$NUMPY_OK" != "ok" ]]; then
   exit 1
 fi
 
+# Templates
 TEMPLATES_OK=$(docker exec opentrident-gateway ls /app/docs/reference/templates/IDENTITY.md /app/docs/reference/templates/USER.md 2>&1)
 if [[ $? -ne 0 ]]; then
   echo "[ERR] Missing templates. Rolling back."
   exit 1
 fi
 
-echo "[OK] All verifications passed."
+# Brain memory recall
+LUCID_OK=$(docker exec opentrident-gateway python3 -c "
+import sys, asyncio
+sys.path.insert(0, '/root/brain-live')
+from skills.lucid_bridge import lucid_recall
+r = asyncio.run(lucid_recall('test'))
+print('ok' if isinstance(r, dict) and 'results' in r else 'fail')
+" 2>&1)
+if [[ "$LUCID_OK" != "ok" ]]; then
+  echo "[ERR] Lucid memory recall broken. Rolling back."
+  exit 1
+fi
+
+# Telegram token conflict check
+TOKEN=$(grep '^TELEGRAM_BOT_TOKEN=' .env | cut -d= -f2)
+TG_PROBE=$(curl -s --max-time 5 "https://api.telegram.org/bot${TOKEN}/getUpdates?timeout=0&offset=-1")
+if echo "$TG_PROBE" | grep -q '"error_code":409'; then
+  echo "[ERR] Telegram token conflict — another process is polling. Refusing to deploy."
+  echo "     Response: $TG_PROBE"
+  exit 1
+fi
+
+echo "[OK] All verifications passed (numpy, templates, Lucid, Telegram exclusive)."
 ```
 
-**0d. Force the first compounding cycle.**
+**0d. Fail loud on Telegram conflict in the gateway itself.**
+
+**Files:** `src/infra/telegram/polling.ts` (or wherever the `getUpdates` retry loop lives).
+
+Currently a 409 triggers a 30-second silent retry loop. Fix:
+
+```typescript
+let consecutive409 = 0;
+
+// In the polling loop, on 409 error:
+consecutive409++;
+if (consecutive409 === 1) {
+  log.warn("[telegram] getUpdates 409 — possible conflict, retrying");
+} else if (consecutive409 === 3) {
+  log.error("[telegram] getUpdates 409 × 3 — another process is polling this bot token");
+  // Surface to dashboard
+  writeStatusFile("telegram-conflict-detected");
+} else if (consecutive409 >= 10) {
+  log.error("[telegram] getUpdates 409 × 10 — exiting to force human attention");
+  process.exit(42);
+}
+
+// On successful poll:
+if (consecutive409 > 0) {
+  log.info(`[telegram] recovered from ${consecutive409} consecutive 409s`);
+  consecutive409 = 0;
+}
+```
+
+**0e. Startup token-conflict probe.**
+
+**File:** `src/infra/telegram/provider.ts` (where `[default] starting provider` is logged).
+
+Before calling the first `getUpdates`:
+
+```typescript
+// Pre-flight: ensure nothing else is polling this token
+const probe = await fetch(`https://api.telegram.org/bot${token}/getUpdates?timeout=0&offset=-1`, {
+  signal: AbortSignal.timeout(5000),
+}).then((r) => r.json()).catch(() => null);
+
+if (probe?.error_code === 409) {
+  log.error(`[telegram] CRITICAL: Another process is polling this bot token. Refusing to start Telegram provider.`);
+  log.error(`[telegram] Fix: find the rogue process, or revoke the token via BotFather and issue a new one.`);
+  throw new Error("Telegram token conflict at startup");
+}
+```
+
+**0f. Force the first compounding cycle.**
 
 Manually trigger on VPS:
 1. Force a snapshot: call `generateSnapshot()` + `publishSnapshotToGitHub()` via node one-liner
 2. Force a playbook: call `createPlaybook()` with a real procedure, `recordPlaybookUse()` 5× with success, verify `promoteIfEligible()` fires
 3. Verify dashboard shows non-zero for: snapshots, playbooks, doctrine
 
-**Acceptance:** Zero heartbeat errors for 2 consecutive cycles. Dashboard shows non-zero counters. Snapshot chain has ≥1 entry on GitHub releases. Deploy.sh has post-deploy verification.
+**Acceptance:**
+- Zero heartbeat errors for 2 consecutive cycles
+- Dashboard shows non-zero counters (snapshots, playbooks, doctrine)
+- Snapshot chain has ≥1 entry on GitHub releases
+- `deploy.sh` has post-deploy verification (5 checks: numpy, templates, Lucid, Telegram no-conflict, health)
+- Telegram polling shows zero 409 errors in logs
+- Gateway startup probe exits cleanly when token is exclusive; exits with a loud error if conflict is detected
+- Move 0 time budget: 3h → **4h** (adjust timeline below accordingly)
 
 ---
 
@@ -276,7 +378,7 @@ Raw HTTP POST to Arweave gateway. Tag with `App-Name: OpenTrident`. Store tx ID 
 ## 48h Timeline
 
 ```
-Hour 0–3     Move 0: fix bugs + operational proof + deploy verification
+Hour 0–4     Move 0: fix bugs + operational proof + deploy verification + token conflict hardening
 Hour 3–7     Move 1: leader election
 Hour 7–11    Move 2: specialized forks
 Hour 3–9     Move 3: world model (parallel to 1+2 if two devs)
