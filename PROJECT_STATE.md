@@ -46,12 +46,12 @@ The current job is not more surface area. The current job is persistence hardeni
 ## What Is Not Done
 
 - automatic persistence still needs to prove itself without manual forcing
-- snapshot bundle + GitHub release now work, but Arweave weekly anchoring is still failing with `400 Bad Request`
-- weekly reports are still shallow and currently lag real playbook state
+- Arweave anchoring is now gated honestly, but a real signed uploader path still is not configured
+- weekly reports now read live state in fallback mode, but the autonomous weekly cycle still needs live proof
 - specialized forks exist in code but only `general` is active
 - world model is effectively empty
-- Telegram fail-loud startup probe and 409 escalation are still pending
-- `deploy.sh` still needs the full post-deploy verification pack
+- Telegram fail-loud behavior needs live soak proof after deploy
+- `deploy.sh` hardening needs live deploy proof after the new Brain/Telegram checks
 
 ## Canonical Files
 
@@ -63,6 +63,7 @@ Keep these as living truth:
 - `README.md`
 - `PROJECT_STATE.md`
 - `OPERATIONS.md`
+- `ENDGAME_24H.md`
 - `ENDGAME_48H.md`
 
 Historical plans and superseded specs live in `archive/2026-04-cleanup/`.
