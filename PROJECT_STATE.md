@@ -74,6 +74,7 @@ Keep these as living truth:
 - `OPERATIONS.md`
 - `ENDGAME_24H.md`
 - `ENDGAME_48H.md`
+- `FAILOVER_RESTORE_DRILL.md`
 
 Historical plans and superseded specs live in `archive/2026-04-cleanup/`.
 
@@ -83,7 +84,7 @@ Historical plans and superseded specs live in `archive/2026-04-cleanup/`.
 2. prove Bain and other stable identity facts survive topic drift
 3. harden deploy verification so Brain memory cannot silently disappear again
 4. prove the first natural compounding cycle without manual bootstrap
-5. only then activate specialized forks beyond `general`
+5. run the dual-node failover + cold-restore drill in `FAILOVER_RESTORE_DRILL.md`
 
 ## Non-Priorities
 

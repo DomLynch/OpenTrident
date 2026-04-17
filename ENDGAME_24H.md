@@ -112,6 +112,7 @@ By the end of this run:
   - follower failover
   - specialized forks
   - restore drill from signed snapshot
+- runbook: `FAILOVER_RESTORE_DRILL.md`
 - Status: **next**
 
 ---
